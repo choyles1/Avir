@@ -367,6 +367,7 @@
         <button class="tab active" onclick="switchTab('schedule')">Schedule View</button>
         <button class="tab" onclick="switchTab('add-event')">Add Event</button>
         <button class="tab" onclick="switchTab('patients')">Manage Patients</button>
+        <button class="tab" onclick="switchTab('settings')">Settings</button>
     </div>
 
     <div class="content">
@@ -447,21 +448,142 @@
             <h3 style="margin-bottom: 15px;">Current Patients</h3>
             <div id="patient-list"></div>
         </div>
+
+        <!-- Settings View -->
+        <div id="settings-view" class="view">
+            <h2 style="margin-bottom: 20px;">Cloud Sync Settings</h2>
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin-bottom: 15px; line-height: 1.6;">
+                    Enable cloud sync to back up your data and access it across all your devices. 
+                    You'll need a free JSONBin account.
+                </p>
+                <ol style="margin-left: 20px; line-height: 1.8;">
+                    <li>Go to <a href="https://jsonbin.io" target="_blank" style="color: #667eea; text-decoration: none; font-weight: 600;">jsonbin.io</a> and create a free account</li>
+                    <li>Create a new bin (any name, like "Patient Tracker")</li>
+                    <li>Copy your Bin ID and API Key</li>
+                    <li>Paste them below and click Save</li>
+                </ol>
+            </div>
+            
+            <form id="settings-form">
+                <div class="form-group">
+                    <label for="bin-id">JSONBin Bin ID</label>
+                    <input type="text" id="bin-id" placeholder="e.g., 67a1b2c3d4e5f6g7h8i9j0k1">
+                </div>
+                <div class="form-group">
+                    <label for="api-key">JSONBin API Key</label>
+                    <input type="text" id="api-key" placeholder="e.g., $2a$10$...">
+                </div>
+                <button type="submit" class="btn">Save & Sync</button>
+                <button type="button" class="btn btn-secondary" onclick="testSync()" style="margin-left: 10px;">Test Connection</button>
+            </form>
+            
+            <div id="sync-status" style="margin-top: 20px; padding: 15px; border-radius: 8px; display: none;"></div>
+        </div>
     </div>
 </div>
 
 <script>
+    // JSONBin Configuration
+    var JSONBIN_BIN_ID = '';
+    var JSONBIN_API_KEY = '';
+    
     // Data storage
     var patients = [];
     var events = [];
 
     // Initialize app
     function init() {
-        loadData();
-        resetDailyCompletions();
-        updatePatientSelect();
-        updatePatientList();
-        renderSchedule();
+        loadConfig();
+        if (JSONBIN_BIN_ID && JSONBIN_API_KEY) {
+            syncFromCloud();
+        } else {
+            loadData();
+            resetDailyCompletions();
+            updatePatientSelect();
+            updatePatientList();
+            renderSchedule();
+        }
+    }
+
+    function loadConfig() {
+        var savedBinId = localStorage.getItem('jsonbin_bin_id');
+        var savedApiKey = localStorage.getItem('jsonbin_api_key');
+        
+        if (savedBinId && savedApiKey) {
+            JSONBIN_BIN_ID = savedBinId;
+            JSONBIN_API_KEY = savedApiKey;
+        }
+    }
+
+    function saveConfig() {
+        localStorage.setItem('jsonbin_bin_id', JSONBIN_BIN_ID);
+        localStorage.setItem('jsonbin_api_key', JSONBIN_API_KEY);
+    }
+
+    function syncFromCloud() {
+        if (!JSONBIN_BIN_ID || !JSONBIN_API_KEY) {
+            loadData();
+            resetDailyCompletions();
+            updatePatientSelect();
+            updatePatientList();
+            renderSchedule();
+            return;
+        }
+
+        fetch('https://api.jsonbin.io/v3/b/' + JSONBIN_BIN_ID + '/latest', {
+            method: 'GET',
+            headers: {
+                'X-Master-Key': JSONBIN_API_KEY
+            }
+        })
+        .then(function(response) {
+            if (!response.ok) throw new Error('Sync failed');
+            return response.json();
+        })
+        .then(function(data) {
+            if (data.record) {
+                patients = data.record.patients || [];
+                events = data.record.events || [];
+                saveData();
+                resetDailyCompletions();
+                updatePatientSelect();
+                updatePatientList();
+                renderSchedule();
+            }
+        })
+        .catch(function(error) {
+            console.error('Cloud sync error:', error);
+            loadData();
+            resetDailyCompletions();
+            updatePatientSelect();
+            updatePatientList();
+            renderSchedule();
+        });
+    }
+
+    function syncToCloud() {
+        if (!JSONBIN_BIN_ID || !JSONBIN_API_KEY) {
+            return;
+        }
+
+        var payload = {
+            patients: patients,
+            events: events,
+            lastUpdated: new Date().toISOString()
+        };
+
+        fetch('https://api.jsonbin.io/v3/b/' + JSONBIN_BIN_ID, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Master-Key': JSONBIN_API_KEY
+            },
+            body: JSON.stringify(payload)
+        })
+        .catch(function(error) {
+            console.error('Cloud sync error:', error);
+        });
     }
 
     function loadData() {
@@ -475,6 +597,7 @@
     function saveData() {
         localStorage.setItem('patients', JSON.stringify(patients));
         localStorage.setItem('events', JSON.stringify(events));
+        syncToCloud();
     }
 
     function resetDailyCompletions() {
@@ -508,7 +631,83 @@
         
         if (tabName === 'schedule') {
             renderSchedule();
+        } else if (tabName === 'settings') {
+            loadSettingsForm();
         }
+    }
+
+    function loadSettingsForm() {
+        document.getElementById('bin-id').value = JSONBIN_BIN_ID || '';
+        document.getElementById('api-key').value = JSONBIN_API_KEY || '';
+    }
+
+    // Settings form handler
+    document.getElementById('settings-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        var binId = document.getElementById('bin-id').value.trim();
+        var apiKey = document.getElementById('api-key').value.trim();
+        
+        if (binId && apiKey) {
+            JSONBIN_BIN_ID = binId;
+            JSONBIN_API_KEY = apiKey;
+            saveConfig();
+            
+            var statusDiv = document.getElementById('sync-status');
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#d1ecf1';
+            statusDiv.style.color = '#0c5460';
+            statusDiv.textContent = 'Settings saved! Syncing to cloud...';
+            
+            syncToCloud();
+            
+            setTimeout(function() {
+                syncFromCloud();
+                statusDiv.style.background = '#d4edda';
+                statusDiv.style.color = '#155724';
+                statusDiv.textContent = 'Cloud sync enabled successfully!';
+            }, 1000);
+        }
+    });
+
+    function testSync() {
+        var binId = document.getElementById('bin-id').value.trim();
+        var apiKey = document.getElementById('api-key').value.trim();
+        var statusDiv = document.getElementById('sync-status');
+        
+        if (!binId || !apiKey) {
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#f8d7da';
+            statusDiv.style.color = '#721c24';
+            statusDiv.textContent = 'Please enter both Bin ID and API Key';
+            return;
+        }
+        
+        statusDiv.style.display = 'block';
+        statusDiv.style.background = '#d1ecf1';
+        statusDiv.style.color = '#0c5460';
+        statusDiv.textContent = 'Testing connection...';
+        
+        fetch('https://api.jsonbin.io/v3/b/' + binId + '/latest', {
+            method: 'GET',
+            headers: {
+                'X-Master-Key': apiKey
+            }
+        })
+        .then(function(response) {
+            if (!response.ok) throw new Error('Connection failed');
+            return response.json();
+        })
+        .then(function(data) {
+            statusDiv.style.background = '#d4edda';
+            statusDiv.style.color = '#155724';
+            statusDiv.textContent = 'Connection successful! Your credentials are valid.';
+        })
+        .catch(function(error) {
+            statusDiv.style.background = '#f8d7da';
+            statusDiv.style.color = '#721c24';
+            statusDiv.textContent = 'Connection failed. Please check your Bin ID and API Key.';
+        });
     }
 
     // Patient management
