@@ -5,8 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Patient Event Tracker</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23667eea'/%3E%3Ccircle cx='50' cy='30' r='13' fill='%23fff' opacity='0.3'/%3E%3Cpath d='M50 21.5 C46.7 18.2 41.7 18.2 39.3 21.5 C37 24.8 37 29.2 40.8 32.7 L50 40.5 L59.2 32.7 C63 29.2 63 24.8 60.7 21.5 C58.3 18.2 53.3 18.2 50 21.5 Z' fill='%23fff'/%3E%3Crect x='24' y='53' width='8' height='8' rx='1.5' fill='none' stroke='%23fff' stroke-width='1.5'/%3E%3Cpath d='M25.3 57 L27.7 59.3 L30.7 55.7' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Crect x='36' y='55.5' width='40' height='3' rx='1.5' fill='%23fff' opacity='0.7'/%3E%3Crect x='24' y='66' width='8' height='8' rx='1.5' fill='none' stroke='%23fff' stroke-width='1.5'/%3E%3Cpath d='M25.3 70 L27.7 72.3 L30.7 68.7' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Crect x='36' y='68.5' width='48' height='3' rx='1.5' fill='%23fff' opacity='0.7'/%3E%3Crect x='24' y='79' width='8' height='8' rx='1.5' fill='none' stroke='%23fff' stroke-width='1.5'/%3E%3Crect x='36' y='81.5' width='32' height='3' rx='1.5' fill='%23fff' opacity='0.7'/%3E%3C/svg%3E">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23667eea'/%3E%3Ccircle cx='50' cy='30' r='13' fill='%23fff' opacity='0.3'/%3E%3Cpath d='M50 21.5 C46.7 18.2 41.7 18.2 39.3 21.5 C37 24.8 37 29.2 40.8 32.7 L50 40.5 L59.2 32.7 C63 29.2 63 24.8 60.7 21.5 C58.3 18.2 53.3 18.2 50 21.5 Z' fill='%23fff'/%3E%3Crect x='24' y='53' width='8' height='8' rx='1.5' fill='none' stroke='%23fff' stroke-width='1.5'/%3E%3Cpath d='M25.3 57 L27.7 59.3 L30.7 55.7' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Crect x='36' y='55.5' width='40' height='3' rx='1.5' fill='%23fff' opacity='0.7'/%3E%3Crect x='24' y='66' width='8' height='8' rx='1.5' fill='none' stroke='%23fff' stroke-width='1.5'/%3E%3Cpath d='M25.3 70 L27.7 72.3 L30.7 68.7' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Crect x='36' y='68.5' width='48' height='3' rx='1.5' fill='%23fff' opacity='0.7'/%3E%3Crect x='24' y='79' width='8' height='8' rx='1.5' fill='none' stroke='%23fff' stroke-width='1.5'/%3E%3Crect x='36' y='81.5' width='32' height='3' rx='1.5' fill='%23fff' opacity='0.7'/%3E%3C/svg%3E">
+    <meta name="description" content="Track daily patient care events and tasks">
+    <meta name="theme-color" content="#667eea">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="app-icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="app-icon-512.png">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <style>
         * {
             margin: 0;
@@ -276,6 +280,56 @@
         align-items: center;
     }
 
+    .days-selector {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .day-checkbox {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8f9fa;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 10px 14px;
+        cursor: pointer;
+        transition: all 0.3s;
+        user-select: none;
+    }
+
+    .day-checkbox:hover {
+        border-color: #667eea;
+        background: #f0f2ff;
+    }
+
+    .day-checkbox input[type="checkbox"] {
+        display: none;
+    }
+
+    .day-checkbox input[type="checkbox"]:checked + span {
+        font-weight: 600;
+    }
+
+    .day-checkbox:has(input:checked) {
+        background: #667eea;
+        border-color: #667eea;
+        color: white;
+    }
+
+    .day-badge {
+        display: inline-block;
+        background: #e0e0e0;
+        color: #333;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        margin-right: 4px;
+        margin-top: 4px;
+    }
+
     @media (max-width: 600px) {
         .tabs {
             flex-direction: column;
@@ -336,6 +390,39 @@
                     <input type="time" id="event-time" required>
                 </div>
                 <div class="form-group">
+                    <label>Repeat on days (leave all unchecked for daily)</label>
+                    <div class="days-selector">
+                        <label class="day-checkbox">
+                            <input type="checkbox" name="day" value="0">
+                            <span>Sun</span>
+                        </label>
+                        <label class="day-checkbox">
+                            <input type="checkbox" name="day" value="1">
+                            <span>Mon</span>
+                        </label>
+                        <label class="day-checkbox">
+                            <input type="checkbox" name="day" value="2">
+                            <span>Tue</span>
+                        </label>
+                        <label class="day-checkbox">
+                            <input type="checkbox" name="day" value="3">
+                            <span>Wed</span>
+                        </label>
+                        <label class="day-checkbox">
+                            <input type="checkbox" name="day" value="4">
+                            <span>Thu</span>
+                        </label>
+                        <label class="day-checkbox">
+                            <input type="checkbox" name="day" value="5">
+                            <span>Fri</span>
+                        </label>
+                        <label class="day-checkbox">
+                            <input type="checkbox" name="day" value="6">
+                            <span>Sat</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
                     <label for="event-description">Event Description</label>
                     <textarea id="event-description" required placeholder="e.g., Administer medication, Vital signs check, Physical therapy..."></textarea>
                 </div>
@@ -371,6 +458,7 @@
     // Initialize app
     function init() {
         loadData();
+        resetDailyCompletions();
         updatePatientSelect();
         updatePatientList();
         renderSchedule();
@@ -387,6 +475,20 @@
     function saveData() {
         localStorage.setItem('patients', JSON.stringify(patients));
         localStorage.setItem('events', JSON.stringify(events));
+    }
+
+    function resetDailyCompletions() {
+        var lastResetDate = localStorage.getItem('lastResetDate');
+        var today = new Date().toDateString();
+        
+        if (lastResetDate !== today) {
+            // Reset all completed flags
+            for (var i = 0; i < events.length; i++) {
+                events[i].completed = false;
+            }
+            saveData();
+            localStorage.setItem('lastResetDate', today);
+        }
     }
 
     // Tab switching
@@ -500,12 +602,20 @@
         var time = document.getElementById('event-time').value;
         var description = document.getElementById('event-description').value.trim();
         
+        // Get selected days
+        var dayCheckboxes = document.querySelectorAll('input[name="day"]:checked');
+        var selectedDays = [];
+        for (var i = 0; i < dayCheckboxes.length; i++) {
+            selectedDays.push(parseInt(dayCheckboxes[i].value));
+        }
+        
         if (patientId && time && description) {
             var newEvent = {
                 id: Date.now().toString(),
                 patientId: patientId,
                 time: time,
                 description: description,
+                daysOfWeek: selectedDays,
                 completed: false
             };
             
@@ -513,6 +623,12 @@
             saveData();
             
             document.getElementById('event-description').value = '';
+            
+            // Uncheck all day checkboxes
+            var allDayCheckboxes = document.querySelectorAll('input[name="day"]');
+            for (var j = 0; j < allDayCheckboxes.length; j++) {
+                allDayCheckboxes[j].checked = false;
+            }
             
             alert('Event added successfully!');
         }
@@ -553,14 +669,23 @@
         
         container.innerHTML = '';
         
+        // Get today's day of week (0 = Sunday, 6 = Saturday)
+        var today = new Date().getDay();
+        
         // Group events by patient
         var eventsByPatient = {};
         for (var i = 0; i < events.length; i++) {
             var evt = events[i];
-            if (!eventsByPatient[evt.patientId]) {
-                eventsByPatient[evt.patientId] = [];
+            
+            // Filter by day of week
+            // If daysOfWeek is empty or undefined, show every day (daily event)
+            // If daysOfWeek has values, only show if today matches
+            if (!evt.daysOfWeek || evt.daysOfWeek.length === 0 || evt.daysOfWeek.indexOf(today) !== -1) {
+                if (!eventsByPatient[evt.patientId]) {
+                    eventsByPatient[evt.patientId] = [];
+                }
+                eventsByPatient[evt.patientId].push(evt);
             }
-            eventsByPatient[evt.patientId].push(evt);
         }
         
         // Sort events within each patient by time only
@@ -568,6 +693,20 @@
             eventsByPatient[patientId].sort(function(a, b) {
                 return a.time.localeCompare(b.time);
             });
+        }
+        
+        // Check if there are any events for today
+        var hasEventsToday = false;
+        for (var pid in eventsByPatient) {
+            if (eventsByPatient[pid].length > 0) {
+                hasEventsToday = true;
+                break;
+            }
+        }
+        
+        if (!hasEventsToday) {
+            container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📅</div><p>No events scheduled for today. Check back tomorrow!</p></div>';
+            return;
         }
         
         // Render each patient's events
@@ -613,6 +752,22 @@
                 descDiv.textContent = evt.description;
                 
                 detailsDiv.appendChild(descDiv);
+                
+                // Add day badges if specific days are set
+                if (evt.daysOfWeek && evt.daysOfWeek.length > 0) {
+                    var dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                    var badgeContainer = document.createElement('div');
+                    badgeContainer.style.marginTop = '6px';
+                    
+                    for (var d = 0; d < evt.daysOfWeek.length; d++) {
+                        var badge = document.createElement('span');
+                        badge.className = 'day-badge';
+                        badge.textContent = dayNames[evt.daysOfWeek[d]];
+                        badgeContainer.appendChild(badge);
+                    }
+                    
+                    detailsDiv.appendChild(badgeContainer);
+                }
                 
                 var actionsDiv = document.createElement('div');
                 actionsDiv.className = 'event-actions';
