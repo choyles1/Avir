@@ -211,8 +211,14 @@
     }
 
     .event-item.completed {
-        opacity: 0.6;
+        opacity: 0.5;
         border-left-color: #28a745;
+        background: #f8f9fa;
+    }
+
+    .event-item.completed .event-time,
+    .event-item.completed .event-description {
+        text-decoration: line-through;
     }
 
     .event-time {
@@ -354,6 +360,129 @@
         margin-top: 4px;
     }
 
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+        padding: 20px;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        max-width: 700px;
+        width: 100%;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-header {
+        padding: 20px 25px;
+        border-bottom: 2px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        color: #667eea;
+        font-size: 22px;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 28px;
+        color: #666;
+        cursor: pointer;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+    }
+
+    .modal-close:hover {
+        background: #f0f0f0;
+    }
+
+    .modal-body {
+        padding: 25px;
+    }
+
+    .event-edit-item {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        border-left: 4px solid #667eea;
+    }
+
+    .event-edit-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 10px;
+    }
+
+    .event-edit-info {
+        flex: 1;
+    }
+
+    .event-edit-time {
+        font-size: 18px;
+        font-weight: 700;
+        color: #667eea;
+        margin-bottom: 5px;
+    }
+
+    .event-edit-desc {
+        font-size: 15px;
+        color: #333;
+        margin-bottom: 8px;
+    }
+
+    .event-edit-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .patient-list-item {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .patient-list-item:hover {
+        background: #e9ecef;
+        transform: translateX(4px);
+    }
+
+    .patient-name-click {
+        flex: 1;
+        font-weight: 600;
+    }
+
     @media (max-width: 600px) {
         .tabs {
             flex-direction: column;
@@ -373,6 +502,20 @@
 
         .event-time {
             font-size: 16px;
+        }
+
+        #schedule-view > div:first-child {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        #schedule-view > div:first-child h2 {
+            font-size: 22px;
+        }
+
+        #schedule-view > div:first-child button {
+            width: 100%;
         }
     }
 </style>
@@ -397,6 +540,10 @@
     <div class="content">
         <!-- Schedule View -->
         <div id="schedule-view" class="view active">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0;">Today's Schedule</h2>
+                <button class="btn btn-secondary" onclick="resetAllCompletions()">Reset All Done Events</button>
+            </div>
             <div id="schedule-container"></div>
         </div>
 
@@ -504,6 +651,23 @@
             </form>
             
             <div id="sync-status" style="margin-top: 20px; padding: 15px; border-radius: 8px; display: none;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Event Edit Modal -->
+<div id="event-modal" class="modal-overlay" onclick="closeEventModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3 id="modal-patient-name"></h3>
+            <button class="modal-close" onclick="closeEventModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="modal-events-list"></div>
+            <div id="modal-empty-state" style="text-align: center; padding: 40px; color: #666; display: none;">
+                <div style="font-size: 48px; margin-bottom: 10px;">📅</div>
+                <p>No events scheduled for this patient</p>
+            </div>
         </div>
     </div>
 </div>
@@ -636,6 +800,17 @@
             }
             saveData();
             localStorage.setItem('lastResetDate', today);
+        }
+    }
+
+    function resetAllCompletions() {
+        if (confirm('Reset all completed events? This will mark all "Done" events as incomplete.')) {
+            for (var i = 0; i < events.length; i++) {
+                events[i].completed = false;
+            }
+            saveData();
+            renderSchedule();
+            showSuccessMessage('All events reset successfully!');
         }
     }
 
@@ -816,6 +991,200 @@
         }
     }
 
+    function viewPatientEvents(patientId) {
+        var patient = null;
+        for (var i = 0; i < patients.length; i++) {
+            if (patients[i].id === patientId) {
+                patient = patients[i];
+                break;
+            }
+        }
+        
+        if (!patient) return;
+        
+        // Get all events for this patient
+        var patientEvents = [];
+        for (var j = 0; j < events.length; j++) {
+            if (events[j].patientId === patientId) {
+                patientEvents.push(events[j]);
+            }
+        }
+        
+        // Sort by time
+        patientEvents.sort(function(a, b) {
+            return a.time.localeCompare(b.time);
+        });
+        
+        // Update modal
+        document.getElementById('modal-patient-name').textContent = patient.name + ' - Room ' + patient.room;
+        
+        var listContainer = document.getElementById('modal-events-list');
+        var emptyState = document.getElementById('modal-empty-state');
+        
+        if (patientEvents.length === 0) {
+            listContainer.innerHTML = '';
+            emptyState.style.display = 'block';
+        } else {
+            emptyState.style.display = 'none';
+            listContainer.innerHTML = '';
+            
+            for (var k = 0; k < patientEvents.length; k++) {
+                var evt = patientEvents[k];
+                var eventDiv = document.createElement('div');
+                eventDiv.className = 'event-edit-item';
+                
+                var headerDiv = document.createElement('div');
+                headerDiv.className = 'event-edit-header';
+                
+                var infoDiv = document.createElement('div');
+                infoDiv.className = 'event-edit-info';
+                
+                var timeDiv = document.createElement('div');
+                timeDiv.className = 'event-edit-time';
+                timeDiv.textContent = formatTime(evt.time);
+                
+                var descDiv = document.createElement('div');
+                descDiv.className = 'event-edit-desc';
+                descDiv.textContent = evt.description;
+                
+                infoDiv.appendChild(timeDiv);
+                infoDiv.appendChild(descDiv);
+                
+                // Add day badges if specific days are set
+                if (evt.daysOfWeek && evt.daysOfWeek.length > 0) {
+                    var dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                    var badgeContainer = document.createElement('div');
+                    badgeContainer.style.marginTop = '6px';
+                    
+                    for (var d = 0; d < evt.daysOfWeek.length; d++) {
+                        var badge = document.createElement('span');
+                        badge.className = 'day-badge';
+                        badge.textContent = dayNames[evt.daysOfWeek[d]];
+                        badgeContainer.appendChild(badge);
+                    }
+                    
+                    infoDiv.appendChild(badgeContainer);
+                } else {
+                    var dailyBadge = document.createElement('span');
+                    dailyBadge.className = 'day-badge';
+                    dailyBadge.style.background = '#667eea';
+                    dailyBadge.style.color = 'white';
+                    dailyBadge.textContent = 'Daily';
+                    var badgeContainer2 = document.createElement('div');
+                    badgeContainer2.style.marginTop = '6px';
+                    badgeContainer2.appendChild(dailyBadge);
+                    infoDiv.appendChild(badgeContainer2);
+                }
+                
+                var actionsDiv = document.createElement('div');
+                actionsDiv.className = 'event-edit-actions';
+                
+                var editEventBtn = document.createElement('button');
+                editEventBtn.className = 'btn btn-small btn-secondary';
+                editEventBtn.textContent = 'Edit';
+                editEventBtn.onclick = (function(eventId) {
+                    return function() {
+                        editEventInModal(eventId);
+                    };
+                })(evt.id);
+                
+                var deleteEventBtn = document.createElement('button');
+                deleteEventBtn.className = 'btn btn-small btn-danger';
+                deleteEventBtn.textContent = 'Delete';
+                deleteEventBtn.onclick = (function(eventId, patId) {
+                    return function() {
+                        deleteEventInModal(eventId, patId);
+                    };
+                })(evt.id, patientId);
+                
+                actionsDiv.appendChild(editEventBtn);
+                actionsDiv.appendChild(deleteEventBtn);
+                
+                headerDiv.appendChild(infoDiv);
+                headerDiv.appendChild(actionsDiv);
+                
+                eventDiv.appendChild(headerDiv);
+                listContainer.appendChild(eventDiv);
+            }
+        }
+        
+        // Show modal
+        document.getElementById('event-modal').classList.add('active');
+    }
+
+    function closeEventModal(e) {
+        if (!e || e.target === e.currentTarget) {
+            document.getElementById('event-modal').classList.remove('active');
+        }
+    }
+
+    function editEventInModal(eventId) {
+        var evt = null;
+        for (var i = 0; i < events.length; i++) {
+            if (events[i].id === eventId) {
+                evt = events[i];
+                break;
+            }
+        }
+        
+        if (!evt) return;
+        
+        // Switch to Add Event tab and populate form
+        closeEventModal();
+        switchTabByName('add-event');
+        
+        // Populate form
+        document.getElementById('event-patient').value = evt.patientId;
+        document.getElementById('event-time').value = formatTime(evt.time);
+        document.getElementById('event-description').value = evt.description;
+        
+        // Check the appropriate day checkboxes
+        var dayCheckboxes = document.querySelectorAll('input[name="day"]');
+        for (var j = 0; j < dayCheckboxes.length; j++) {
+            dayCheckboxes[j].checked = false;
+        }
+        
+        if (evt.daysOfWeek && evt.daysOfWeek.length > 0) {
+            for (var k = 0; k < evt.daysOfWeek.length; k++) {
+                var checkbox = document.querySelector('input[name="day"][value="' + evt.daysOfWeek[k] + '"]');
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+            }
+        }
+        
+        // Store the event ID for updating
+        editingEventId = eventId;
+        document.querySelector('#event-form button[type="submit"]').textContent = 'Update Event';
+    }
+
+    function deleteEventInModal(eventId, patientId) {
+        if (confirm('Are you sure you want to delete this event?')) {
+            events = events.filter(function(e) { return e.id !== eventId; });
+            saveData();
+            viewPatientEvents(patientId);
+            renderSchedule();
+        }
+    }
+
+    function switchTabByName(tabName) {
+        var tabs = document.querySelectorAll('.tab');
+        var views = document.querySelectorAll('.view');
+        
+        for (var i = 0; i < tabs.length; i++) {
+            tabs[i].classList.remove('active');
+            if (tabs[i].textContent.toLowerCase().includes(tabName.replace('-', ' '))) {
+                tabs[i].classList.add('active');
+            }
+        }
+        
+        for (var j = 0; j < views.length; j++) {
+            views[j].classList.remove('active');
+        }
+        
+        document.getElementById(tabName + '-view').classList.add('active');
+    }
+
     function updatePatientSelect() {
         var select = document.getElementById('event-patient');
         select.innerHTML = '<option value="">Select a patient...</option>';
@@ -845,9 +1214,14 @@
             var itemDiv = document.createElement('div');
             itemDiv.className = 'patient-list-item';
             
-            var nameSpan = document.createElement('span');
-            nameSpan.textContent = patient.name + ' - Room ' + patient.room;
-            nameSpan.style.fontWeight = '600';
+            var nameDiv = document.createElement('div');
+            nameDiv.className = 'patient-name-click';
+            nameDiv.textContent = patient.name + ' - Room ' + patient.room;
+            nameDiv.onclick = (function(patientId) {
+                return function() {
+                    viewPatientEvents(patientId);
+                };
+            })(patient.id);
             
             var buttonGroup = document.createElement('div');
             buttonGroup.style.display = 'flex';
@@ -857,7 +1231,8 @@
             editBtn.className = 'btn btn-small btn-secondary';
             editBtn.textContent = 'Edit';
             editBtn.onclick = (function(patientId) {
-                return function() {
+                return function(e) {
+                    e.stopPropagation();
                     editPatient(patientId);
                 };
             })(patient.id);
@@ -866,7 +1241,8 @@
             deleteBtn.className = 'btn btn-small btn-danger';
             deleteBtn.textContent = 'Delete';
             deleteBtn.onclick = (function(patientId) {
-                return function() {
+                return function(e) {
+                    e.stopPropagation();
                     deletePatient(patientId);
                 };
             })(patient.id);
@@ -874,7 +1250,7 @@
             buttonGroup.appendChild(editBtn);
             buttonGroup.appendChild(deleteBtn);
             
-            itemDiv.appendChild(nameSpan);
+            itemDiv.appendChild(nameDiv);
             itemDiv.appendChild(buttonGroup);
             listDiv.appendChild(itemDiv);
         }
@@ -894,6 +1270,8 @@
     }
 
     // Event management
+    var editingEventId = null;
+
     function parseTimeInput(timeStr) {
         timeStr = timeStr.trim();
         
@@ -968,16 +1346,34 @@
         }
         
         if (patientId && time && description) {
-            var newEvent = {
-                id: Date.now().toString(),
-                patientId: patientId,
-                time: time,
-                description: description,
-                daysOfWeek: selectedDays,
-                completed: false
-            };
+            if (editingEventId) {
+                // Update existing event
+                for (var j = 0; j < events.length; j++) {
+                    if (events[j].id === editingEventId) {
+                        events[j].patientId = patientId;
+                        events[j].time = time;
+                        events[j].description = description;
+                        events[j].daysOfWeek = selectedDays;
+                        break;
+                    }
+                }
+                editingEventId = null;
+                document.querySelector('#event-form button[type="submit"]').textContent = 'Add Event';
+                showSuccessMessage('Event updated successfully!');
+            } else {
+                // Add new event
+                var newEvent = {
+                    id: Date.now().toString(),
+                    patientId: patientId,
+                    time: time,
+                    description: description,
+                    daysOfWeek: selectedDays,
+                    completed: false
+                };
+                events.push(newEvent);
+                showSuccessMessage('Event added successfully!');
+            }
             
-            events.push(newEvent);
             saveData();
             
             document.getElementById('event-patient').value = '';
@@ -986,11 +1382,11 @@
             
             // Uncheck all day checkboxes
             var allDayCheckboxes = document.querySelectorAll('input[name="day"]');
-            for (var j = 0; j < allDayCheckboxes.length; j++) {
-                allDayCheckboxes[j].checked = false;
+            for (var k = 0; k < allDayCheckboxes.length; k++) {
+                allDayCheckboxes[k].checked = false;
             }
             
-            showSuccessMessage('Event added successfully!');
+            renderSchedule();
         }
     });
 
@@ -1132,19 +1528,15 @@
                 var actionsDiv = document.createElement('div');
                 actionsDiv.className = 'event-actions';
                 
-                var checkboxContainer = document.createElement('div');
-                checkboxContainer.className = 'checkbox-container';
-                
-                var checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.checked = evt.completed;
-                checkbox.onchange = (function(eventId) {
+                var doneBtn = document.createElement('button');
+                doneBtn.className = 'btn btn-small' + (evt.completed ? ' btn-secondary' : '');
+                doneBtn.textContent = evt.completed ? 'Undo' : 'Done';
+                doneBtn.style.background = evt.completed ? '#6c757d' : '#28a745';
+                doneBtn.onclick = (function(eventId) {
                     return function() {
                         toggleEventComplete(eventId);
                     };
                 })(evt.id);
-                
-                checkboxContainer.appendChild(checkbox);
                 
                 var deleteBtn = document.createElement('button');
                 deleteBtn.className = 'btn btn-small btn-danger';
@@ -1155,7 +1547,7 @@
                     };
                 })(evt.id);
                 
-                actionsDiv.appendChild(checkboxContainer);
+                actionsDiv.appendChild(doneBtn);
                 actionsDiv.appendChild(deleteBtn);
                 
                 eventItem.appendChild(timeDiv);
