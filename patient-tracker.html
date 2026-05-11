@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Event Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            flex: 1;
+            background: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .tab:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .content {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .view {
+            display: none;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input[type="text"],
+        input[type="time"],
+        input[type="date"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .patient-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .patient-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .patient-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .event-list {
+            margin-top: 15px;
+        }
+
+        .event-item {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+
+        .event-item:hover {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .event-item.completed {
+            opacity: 0.6;
+            border-left-color: #28a745;
+        }
+
+        .event-time {
+            font-size: 18px;
+            font-weight: 700;
+            color: #667eea;
+            min-width: 80px;
+        }
+
+        .event-details {
+            flex: 1;
+            margin: 0 15px;
+        }
+
+        .event-description {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .event-date {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .event-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .patient-list {
+            display: grid;
+            gap: 15px;
+        }
+
+        .patient-list-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        @media (max-width: 600px) {
+            .tabs {
+                flex-direction: column;
+            }
+
+            .patient-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .event-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .event-time {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Patient Event Tracker</h1>
+            <p class="subtitle">Organize patient care tasks by time and patient</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('schedule')">Schedule View</button>
+            <button class="tab" onclick="switchTab('add-event')">Add Event</button>
+            <button class="tab" onclick="switchTab('patients')">Manage Patients</button>
+        </div>
+
+        <div class="content">
+            <!-- Schedule View -->
+            <div id="schedule-view" class="view active">
+                <div id="schedule-container"></div>
+            </div>
+
+            <!-- Add Event View -->
+            <div id="add-event-view" class="view">
+                <h2 style="margin-bottom: 20px;">Add New Event</h2>
+                <form id="event-form">
+                    <div class="form-group">
+                        <label for="event-patient">Patient</label>
+                        <select id="event-patient" required>
+                            <option value="">Select a patient...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="event-date">Date</label>
+                        <input type="date" id="event-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="event-time">Time</label>
+                        <input type="time" id="event-time" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="event-description">Event Description</label>
+                        <textarea id="event-description" required placeholder="e.g., Administer medication, Vital signs check, Physical therapy..."></textarea>
+                    </div>
+                    <button type="submit" class="btn">Add Event</button>
+                </form>
+            </div>
+
+            <!-- Patients View -->
+            <div id="patients-view" class="view">
+                <h2 style="margin-bottom: 20px;">Manage Patients</h2>
+                <form id="patient-form" style="margin-bottom: 30px;">
+                    <div class="form-group">
+                        <label for="patient-name">Patient Name</label>
+                        <input type="text" id="patient-name" required placeholder="Enter patient name">
+                    </div>
+                    <button type="submit" class="btn">Add Patient</button>
+                </form>
+                <h3 style="margin-bottom: 15px;">Current Patients</h3>
+                <div id="patient-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data storage
+        var patients = [];
+        var events = [];
+
+        // Initialize app
+        function init() {
+            loadData();
+            setTodayDate();
+            updatePatientSelect();
+            updatePatientList();
+            renderSchedule();
+        }
+
+        function loadData() {
+            var patientsData = localStorage.getItem('patients');
+            var eventsData = localStorage.getItem('events');
+            
+            patients = patientsData ? JSON.parse(patientsData) : [];
+            events = eventsData ? JSON.parse(eventsData) : [];
+        }
+
+        function saveData() {
+            localStorage.setItem('patients', JSON.stringify(patients));
+            localStorage.setItem('events', JSON.stringify(events));
+        }
+
+        function setTodayDate() {
+            var today = new Date().toISOString().split('T')[0];
+            document.getElementById('event-date').value = today;
+        }
+
+        // Tab switching
+        function switchTab(tabName) {
+            var tabs = document.querySelectorAll('.tab');
+            var views = document.querySelectorAll('.view');
+            
+            for (var i = 0; i < tabs.length; i++) {
+                tabs[i].classList.remove('active');
+            }
+            for (var j = 0; j < views.length; j++) {
+                views[j].classList.remove('active');
+            }
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-view').classList.add('active');
+            
+            if (tabName === 'schedule') {
+                renderSchedule();
+            }
+        }
+
+        // Patient management
+        document.getElementById('patient-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var name = document.getElementById('patient-name').value.trim();
+            
+            if (name) {
+                var patient = {
+                    id: Date.now().toString(),
+                    name: name
+                };
+                patients.push(patient);
+                saveData();
+                document.getElementById('patient-name').value = '';
+                updatePatientSelect();
+                updatePatientList();
+                alert('Patient added successfully!');
+            }
+        });
+
+        function updatePatientSelect() {
+            var select = document.getElementById('event-patient');
+            select.innerHTML = '<option value="">Select a patient...</option>';
+            
+            for (var i = 0; i < patients.length; i++) {
+                var option = document.createElement('option');
+                option.value = patients[i].id;
+                option.textContent = patients[i].name;
+                select.appendChild(option);
+            }
+        }
+
+        function updatePatientList() {
+            var container = document.getElementById('patient-list');
+            
+            if (patients.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👤</div><p>No patients added yet</p></div>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            var listDiv = document.createElement('div');
+            listDiv.className = 'patient-list';
+            
+            for (var i = 0; i < patients.length; i++) {
+                var patient = patients[i];
+                var itemDiv = document.createElement('div');
+                itemDiv.className = 'patient-list-item';
+                
+                var nameSpan = document.createElement('span');
+                nameSpan.textContent = patient.name;
+                nameSpan.style.fontWeight = '600';
+                
+                var deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn btn-small btn-danger';
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.onclick = (function(patientId) {
+                    return function() {
+                        deletePatient(patientId);
+                    };
+                })(patient.id);
+                
+                itemDiv.appendChild(nameSpan);
+                itemDiv.appendChild(deleteBtn);
+                listDiv.appendChild(itemDiv);
+            }
+            
+            container.appendChild(listDiv);
+        }
+
+        function deletePatient(patientId) {
+            if (confirm('Are you sure you want to delete this patient? All associated events will also be deleted.')) {
+                patients = patients.filter(function(p) { return p.id !== patientId; });
+                events = events.filter(function(e) { return e.patientId !== patientId; });
+                saveData();
+                updatePatientSelect();
+                updatePatientList();
+                renderSchedule();
+            }
+        }
+
+        // Event management
+        document.getElementById('event-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            var patientId = document.getElementById('event-patient').value;
+            var date = document.getElementById('event-date').value;
+            var time = document.getElementById('event-time').value;
+            var description = document.getElementById('event-description').value.trim();
+            
+            if (patientId && date && time && description) {
+                var newEvent = {
+                    id: Date.now().toString(),
+                    patientId: patientId,
+                    date: date,
+                    time: time,
+                    description: description,
+                    completed: false
+                };
+                
+                events.push(newEvent);
+                saveData();
+                
+                document.getElementById('event-description').value = '';
+                setTodayDate();
+                
+                alert('Event added successfully!');
+            }
+        });
+
+        function toggleEventComplete(eventId) {
+            for (var i = 0; i < events.length; i++) {
+                if (events[i].id === eventId) {
+                    events[i].completed = !events[i].completed;
+                    break;
+                }
+            }
+            saveData();
+            renderSchedule();
+        }
+
+        function deleteEvent(eventId) {
+            if (confirm('Are you sure you want to delete this event?')) {
+                events = events.filter(function(e) { return e.id !== eventId; });
+                saveData();
+                renderSchedule();
+            }
+        }
+
+        // Render schedule
+        function renderSchedule() {
+            var container = document.getElementById('schedule-container');
+            
+            if (patients.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👤</div><p>No patients added yet. Go to "Manage Patients" to add patients.</p></div>';
+                return;
+            }
+            
+            if (events.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📅</div><p>No events scheduled. Go to "Add Event" to schedule patient care tasks.</p></div>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            // Group events by patient
+            var eventsByPatient = {};
+            for (var i = 0; i < events.length; i++) {
+                var evt = events[i];
+                if (!eventsByPatient[evt.patientId]) {
+                    eventsByPatient[evt.patientId] = [];
+                }
+                eventsByPatient[evt.patientId].push(evt);
+            }
+            
+            // Sort events within each patient by date and time
+            for (var patientId in eventsByPatient) {
+                eventsByPatient[patientId].sort(function(a, b) {
+                    var dateCompare = a.date.localeCompare(b.date);
+                    if (dateCompare !== 0) return dateCompare;
+                    return a.time.localeCompare(b.time);
+                });
+            }
+            
+            // Render each patient's events
+            for (var j = 0; j < patients.length; j++) {
+                var patient = patients[j];
+                var patientEvents = eventsByPatient[patient.id] || [];
+                
+                if (patientEvents.length === 0) continue;
+                
+                var patientCard = document.createElement('div');
+                patientCard.className = 'patient-card';
+                
+                var headerDiv = document.createElement('div');
+                headerDiv.className = 'patient-header';
+                
+                var nameDiv = document.createElement('div');
+                nameDiv.className = 'patient-name';
+                nameDiv.textContent = patient.name;
+                
+                headerDiv.appendChild(nameDiv);
+                patientCard.appendChild(headerDiv);
+                
+                var eventListDiv = document.createElement('div');
+                eventListDiv.className = 'event-list';
+                
+                for (var k = 0; k < patientEvents.length; k++) {
+                    var evt = patientEvents[k];
+                    var eventItem = document.createElement('div');
+                    eventItem.className = 'event-item';
+                    if (evt.completed) {
+                        eventItem.classList.add('completed');
+                    }
+                    
+                    var timeDiv = document.createElement('div');
+                    timeDiv.className = 'event-time';
+                    timeDiv.textContent = formatTime(evt.time);
+                    
+                    var detailsDiv = document.createElement('div');
+                    detailsDiv.className = 'event-details';
+                    
+                    var descDiv = document.createElement('div');
+                    descDiv.className = 'event-description';
+                    descDiv.textContent = evt.description;
+                    
+                    var dateDiv = document.createElement('div');
+                    dateDiv.className = 'event-date';
+                    dateDiv.textContent = formatDate(evt.date);
+                    
+                    detailsDiv.appendChild(descDiv);
+                    detailsDiv.appendChild(dateDiv);
+                    
+                    var actionsDiv = document.createElement('div');
+                    actionsDiv.className = 'event-actions';
+                    
+                    var checkboxContainer = document.createElement('div');
+                    checkboxContainer.className = 'checkbox-container';
+                    
+                    var checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.checked = evt.completed;
+                    checkbox.onchange = (function(eventId) {
+                        return function() {
+                            toggleEventComplete(eventId);
+                        };
+                    })(evt.id);
+                    
+                    checkboxContainer.appendChild(checkbox);
+                    
+                    var deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'btn btn-small btn-danger';
+                    deleteBtn.textContent = 'Delete';
+                    deleteBtn.onclick = (function(eventId) {
+                        return function() {
+                            deleteEvent(eventId);
+                        };
+                    })(evt.id);
+                    
+                    actionsDiv.appendChild(checkboxContainer);
+                    actionsDiv.appendChild(deleteBtn);
+                    
+                    eventItem.appendChild(timeDiv);
+                    eventItem.appendChild(detailsDiv);
+                    eventItem.appendChild(actionsDiv);
+                    
+                    eventListDiv.appendChild(eventItem);
+                }
+                
+                patientCard.appendChild(eventListDiv);
+                container.appendChild(patientCard);
+            }
+        }
+
+        function formatTime(timeStr) {
+            var parts = timeStr.split(':');
+            var hours = parseInt(parts[0]);
+            var minutes = parts[1];
+            var ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+            return hours + ':' + minutes + ' ' + ampm;
+        }
+
+        function formatDate(dateStr) {
+            var date = new Date(dateStr + 'T00:00:00');
+            var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return months[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear();
+        }
+
+        // Initialize on page load
+        init();
+    </script>
+</body>
+</html>
