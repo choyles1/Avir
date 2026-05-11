@@ -750,6 +750,8 @@
     }
 
     // Patient management
+    var editingPatientId = null;
+
     document.getElementById('patient-form').addEventListener('submit', function(e) {
         e.preventDefault();
         var name = document.getElementById('patient-name').value.trim();
@@ -761,20 +763,57 @@
                 return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
             }).join(' ');
             
-            var patient = {
-                id: Date.now().toString(),
-                name: name,
-                room: room
-            };
-            patients.push(patient);
+            if (editingPatientId) {
+                // Update existing patient
+                for (var i = 0; i < patients.length; i++) {
+                    if (patients[i].id === editingPatientId) {
+                        patients[i].name = name;
+                        patients[i].room = room;
+                        break;
+                    }
+                }
+                editingPatientId = null;
+                document.querySelector('#patient-form button[type="submit"]').textContent = 'Add Patient';
+                showSuccessMessage('Patient updated successfully!');
+            } else {
+                // Add new patient
+                var patient = {
+                    id: Date.now().toString(),
+                    name: name,
+                    room: room
+                };
+                patients.push(patient);
+                showSuccessMessage('Patient added successfully!');
+            }
+            
             saveData();
             document.getElementById('patient-name').value = '';
             document.getElementById('patient-room').value = '';
             updatePatientSelect();
             updatePatientList();
-            showSuccessMessage('Patient added successfully!');
+            renderSchedule();
         }
     });
+
+    function editPatient(patientId) {
+        var patient = null;
+        for (var i = 0; i < patients.length; i++) {
+            if (patients[i].id === patientId) {
+                patient = patients[i];
+                break;
+            }
+        }
+        
+        if (patient) {
+            document.getElementById('patient-name').value = patient.name;
+            document.getElementById('patient-room').value = patient.room;
+            editingPatientId = patientId;
+            document.querySelector('#patient-form button[type="submit"]').textContent = 'Update Patient';
+            
+            // Scroll to form
+            document.getElementById('patient-name').focus();
+        }
+    }
 
     function updatePatientSelect() {
         var select = document.getElementById('event-patient');
@@ -809,6 +848,19 @@
             nameSpan.textContent = patient.name + ' - Room ' + patient.room;
             nameSpan.style.fontWeight = '600';
             
+            var buttonGroup = document.createElement('div');
+            buttonGroup.style.display = 'flex';
+            buttonGroup.style.gap = '8px';
+            
+            var editBtn = document.createElement('button');
+            editBtn.className = 'btn btn-small btn-secondary';
+            editBtn.textContent = 'Edit';
+            editBtn.onclick = (function(patientId) {
+                return function() {
+                    editPatient(patientId);
+                };
+            })(patient.id);
+            
             var deleteBtn = document.createElement('button');
             deleteBtn.className = 'btn btn-small btn-danger';
             deleteBtn.textContent = 'Delete';
@@ -818,8 +870,11 @@
                 };
             })(patient.id);
             
+            buttonGroup.appendChild(editBtn);
+            buttonGroup.appendChild(deleteBtn);
+            
             itemDiv.appendChild(nameSpan);
-            itemDiv.appendChild(deleteBtn);
+            itemDiv.appendChild(buttonGroup);
             listDiv.appendChild(itemDiv);
         }
         
