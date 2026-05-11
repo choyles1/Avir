@@ -280,6 +280,30 @@
         align-items: center;
     }
 
+    .success-message {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #28a745;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        z-index: 1000;
+        animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
     .days-selector {
         display: flex;
         gap: 8px;
@@ -437,11 +461,11 @@
             <form id="patient-form" style="margin-bottom: 30px;">
                 <div class="form-group">
                     <label for="patient-name">Patient Name</label>
-                    <input type="text" id="patient-name" required placeholder="Enter patient name">
+                    <input type="text" id="patient-name" required placeholder="Enter patient name" style="text-transform: capitalize;">
                 </div>
                 <div class="form-group">
                     <label for="patient-room">Room Number</label>
-                    <input type="text" id="patient-room" required placeholder="e.g., 44A, 34B">
+                    <input type="text" id="patient-room" required placeholder="e.g., 44A, 34B" style="text-transform: uppercase;">
                 </div>
                 <button type="submit" class="btn">Add Patient</button>
             </form>
@@ -641,6 +665,21 @@
         document.getElementById('api-key').value = JSONBIN_API_KEY || '';
     }
 
+    function showSuccessMessage(message) {
+        var messageDiv = document.createElement('div');
+        messageDiv.className = 'success-message';
+        messageDiv.textContent = message;
+        document.body.appendChild(messageDiv);
+        
+        setTimeout(function() {
+            messageDiv.style.opacity = '0';
+            messageDiv.style.transition = 'opacity 0.3s';
+            setTimeout(function() {
+                document.body.removeChild(messageDiv);
+            }, 300);
+        }, 2000);
+    }
+
     // Settings form handler
     document.getElementById('settings-form').addEventListener('submit', function(e) {
         e.preventDefault();
@@ -714,9 +753,14 @@
     document.getElementById('patient-form').addEventListener('submit', function(e) {
         e.preventDefault();
         var name = document.getElementById('patient-name').value.trim();
-        var room = document.getElementById('patient-room').value.trim();
+        var room = document.getElementById('patient-room').value.trim().toUpperCase();
         
         if (name && room) {
+            // Capitalize first letter of each word in name
+            name = name.split(' ').map(function(word) {
+                return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+            }).join(' ');
+            
             var patient = {
                 id: Date.now().toString(),
                 name: name,
@@ -728,7 +772,7 @@
             document.getElementById('patient-room').value = '';
             updatePatientSelect();
             updatePatientList();
-            alert('Patient added successfully!');
+            showSuccessMessage('Patient added successfully!');
         }
     });
 
@@ -829,7 +873,7 @@
                 allDayCheckboxes[j].checked = false;
             }
             
-            alert('Event added successfully!');
+            showSuccessMessage('Event added successfully!');
         }
     });
 
