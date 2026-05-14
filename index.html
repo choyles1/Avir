@@ -702,64 +702,75 @@
 
             <!-- Patients View -->
             <div id="patients-view" class="view">
-                <h2 style="margin-bottom: 20px;">Manage Patients</h2>
-                <form id="patient-form" style="margin-bottom: 30px;">
-                    <div class="form-group">
-                        <label for="patient-name">Patient Name</label>
-                        <input type="text" id="patient-name" required placeholder="Enter patient name" style="text-transform: capitalize;">
-                    </div>
-                    <div class="form-group">
-                        <label for="patient-room">Room Number</label>
-                        <input type="text" id="patient-room" required placeholder="e.g., 44A, 34B" style="text-transform: uppercase;">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label style="margin-bottom: 12px;">Care Categories</label>
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
-                            <div style="margin-bottom: 15px;">
-                                <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                                    <input type="checkbox" id="patient-fsbs" style="width: 18px; height: 18px;">
-                                    <span style="font-weight: 600;">FSBS (Finger Stick Blood Sugar)</span>
-                                </label>
-                                <input type="text" id="patient-fsbs-note" placeholder="Note (e.g., Before meals, AC/HS)" style="margin-left: 28px; width: calc(100% - 28px);">
-                            </div>
-                            
-                            <div style="margin-bottom: 15px;">
-                                <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                                    <input type="checkbox" id="patient-emar" style="width: 18px; height: 18px;">
-                                    <span style="font-weight: 600;">EMAR (Electronic Medication Administration)</span>
-                                </label>
-                                <input type="text" id="patient-emar-note" placeholder="Note (e.g., Scheduled meds)" style="margin-left: 28px; width: calc(100% - 28px);">
-                            </div>
-                            
-                            <div style="margin-bottom: 15px;">
-                                <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                                    <input type="checkbox" id="patient-nemar" style="width: 18px; height: 18px;">
-                                    <span style="font-weight: 600;">N-EMAR (Non-Electronic MAR)</span>
-                                </label>
-                                <input type="text" id="patient-nemar-note" placeholder="Note (e.g., PRN medications)" style="margin-left: 28px; width: calc(100% - 28px);">
-                            </div>
-                            
-                            <div style="margin-bottom: 15px;">
-                                <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                                    <input type="checkbox" id="patient-tx" style="width: 18px; height: 18px;">
-                                    <span style="font-weight: 600;">TX (Treatments)</span>
-                                </label>
-                                <input type="text" id="patient-tx-note" placeholder="Note (e.g., Wound care, vitals)" style="margin-left: 28px; width: calc(100% - 28px);">
-                            </div>
-                            
-                            <div>
-                                <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                                    <input type="checkbox" id="patient-skilled" style="width: 18px; height: 18px;">
-                                    <span style="font-weight: 600;">SKILLED (Skilled Nursing)</span>
-                                </label>
-                                <input type="text" id="patient-skilled-note" placeholder="Note (e.g., IV therapy, wound vac)" style="margin-left: 28px; width: calc(100% - 28px);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0;">Manage Patients</h2>
+                    <button class="btn" onclick="showPatientForm()">Add New Patient</button>
+                </div>
+                
+                <div id="patient-form-container" style="display: none; background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+                    <h3 style="margin-bottom: 15px;" id="patient-form-title">Add New Patient</h3>
+                    <form id="patient-form">
+                        <div class="form-group">
+                            <label for="patient-name">Patient Name</label>
+                            <input type="text" id="patient-name" required placeholder="Enter patient name" style="text-transform: capitalize;">
+                        </div>
+                        <div class="form-group">
+                            <label for="patient-room">Room Number</label>
+                            <input type="text" id="patient-room" required placeholder="e.g., 44A, 34B" style="text-transform: uppercase;">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label style="margin-bottom: 12px;">Care Categories</label>
+                            <div style="background: white; padding: 15px; border-radius: 8px;">
+                                <div style="margin-bottom: 15px;">
+                                    <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                        <input type="checkbox" id="patient-fsbs" style="width: 18px; height: 18px;">
+                                        <span style="font-weight: 600;">FSBS (Finger Stick Blood Sugar)</span>
+                                    </label>
+                                    <input type="text" id="patient-fsbs-note" placeholder="Note (e.g., Before meals, AC/HS)" style="margin-left: 28px; width: calc(100% - 28px);">
+                                </div>
+                                
+                                <div style="margin-bottom: 15px;">
+                                    <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                        <input type="checkbox" id="patient-emar" style="width: 18px; height: 18px;">
+                                        <span style="font-weight: 600;">EMAR (Electronic Medication Administration)</span>
+                                    </label>
+                                    <input type="text" id="patient-emar-note" placeholder="Note (e.g., Scheduled meds)" style="margin-left: 28px; width: calc(100% - 28px);">
+                                </div>
+                                
+                                <div style="margin-bottom: 15px;">
+                                    <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                        <input type="checkbox" id="patient-nemar" style="width: 18px; height: 18px;">
+                                        <span style="font-weight: 600;">N-EMAR (Non-Electronic MAR)</span>
+                                    </label>
+                                    <input type="text" id="patient-nemar-note" placeholder="Note (e.g., PRN medications)" style="margin-left: 28px; width: calc(100% - 28px);">
+                                </div>
+                                
+                                <div style="margin-bottom: 15px;">
+                                    <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                        <input type="checkbox" id="patient-tx" style="width: 18px; height: 18px;">
+                                        <span style="font-weight: 600;">TX (Treatments)</span>
+                                    </label>
+                                    <input type="text" id="patient-tx-note" placeholder="Note (e.g., Wound care, vitals)" style="margin-left: 28px; width: calc(100% - 28px);">
+                                </div>
+                                
+                                <div>
+                                    <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                        <input type="checkbox" id="patient-skilled" style="width: 18px; height: 18px;">
+                                        <span style="font-weight: 600;">SKILLED (Skilled Nursing)</span>
+                                    </label>
+                                    <input type="text" id="patient-skilled-note" placeholder="Note (e.g., IV therapy, wound vac)" style="margin-left: 28px; width: calc(100% - 28px);">
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <button type="submit" class="btn">Add Patient</button>
-                </form>
+                        
+                        <div style="display: flex; gap: 10px;">
+                            <button type="submit" class="btn">Save Patient</button>
+                            <button type="button" class="btn btn-secondary" onclick="cancelPatientForm()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+                
                 <h3 style="margin-bottom: 15px;">Current Patients</h3>
                 <div id="patient-list"></div>
             </div>
@@ -1095,6 +1106,34 @@
         // Patient management
         var editingPatientId = null;
 
+        function showPatientForm() {
+            document.getElementById('patient-form-container').style.display = 'block';
+            document.getElementById('patient-name').focus();
+        }
+
+        function cancelPatientForm() {
+            document.getElementById('patient-form-container').style.display = 'none';
+            
+            // Clear form
+            document.getElementById('patient-name').value = '';
+            document.getElementById('patient-room').value = '';
+            document.getElementById('patient-fsbs').checked = false;
+            document.getElementById('patient-fsbs-note').value = '';
+            document.getElementById('patient-emar').checked = false;
+            document.getElementById('patient-emar-note').value = '';
+            document.getElementById('patient-nemar').checked = false;
+            document.getElementById('patient-nemar-note').value = '';
+            document.getElementById('patient-tx').checked = false;
+            document.getElementById('patient-tx-note').value = '';
+            document.getElementById('patient-skilled').checked = false;
+            document.getElementById('patient-skilled-note').value = '';
+            
+            // Reset to add mode
+            editingPatientId = null;
+            document.getElementById('patient-form-title').textContent = 'Add New Patient';
+            document.querySelector('#patient-form button[type="submit"]').textContent = 'Save Patient';
+        }
+
         document.getElementById('patient-form').addEventListener('submit', function(e) {
             e.preventDefault();
             var name = document.getElementById('patient-name').value.trim();
@@ -1140,8 +1179,6 @@
                             break;
                         }
                     }
-                    editingPatientId = null;
-                    document.querySelector('#patient-form button[type="submit"]').textContent = 'Add Patient';
                     showSuccessMessage('Patient updated successfully!');
                 } else {
                     // Add new patient
@@ -1156,18 +1193,7 @@
                 }
                 
                 saveData();
-                document.getElementById('patient-name').value = '';
-                document.getElementById('patient-room').value = '';
-                document.getElementById('patient-fsbs').checked = false;
-                document.getElementById('patient-fsbs-note').value = '';
-                document.getElementById('patient-emar').checked = false;
-                document.getElementById('patient-emar-note').value = '';
-                document.getElementById('patient-nemar').checked = false;
-                document.getElementById('patient-nemar-note').value = '';
-                document.getElementById('patient-tx').checked = false;
-                document.getElementById('patient-tx-note').value = '';
-                document.getElementById('patient-skilled').checked = false;
-                document.getElementById('patient-skilled-note').value = '';
+                cancelPatientForm();
                 updatePatientSelect();
                 updatePatientList();
                 renderSchedule();
@@ -1184,6 +1210,14 @@
             }
             
             if (patient) {
+                // Show form
+                document.getElementById('patient-form-container').style.display = 'block';
+                
+                // Update title and button
+                document.getElementById('patient-form-title').textContent = 'Edit Patient';
+                document.querySelector('#patient-form button[type="submit"]').textContent = 'Update Patient';
+                
+                // Populate fields
                 document.getElementById('patient-name').value = patient.name;
                 document.getElementById('patient-room').value = patient.room;
                 
@@ -1202,7 +1236,6 @@
                 }
                 
                 editingPatientId = patientId;
-                document.querySelector('#patient-form button[type="submit"]').textContent = 'Update Patient';
                 
                 // Scroll to form
                 document.getElementById('patient-name').focus();
