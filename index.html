@@ -1948,6 +1948,7 @@
                 
                 for (var s = 0; s <= 10; s++) {
                     var scaleBtn = document.createElement('button');
+                    scaleBtn.type = 'button';
                     scaleBtn.className = 'btn btn-small pain-scale-btn';
                     scaleBtn.textContent = s.toString();
                     scaleBtn.style.padding = '10px';
@@ -1955,43 +1956,47 @@
                     scaleBtn.style.fontWeight = '700';
                     scaleBtn.style.background = '#e0e0e0';
                     scaleBtn.style.color = '#666';
-                    scaleBtn.id = 'pain-btn-' + patient.id + '-' + s;
+                    scaleBtn.setAttribute('data-patient-id', patient.id);
+                    scaleBtn.setAttribute('data-score', s);
                     
                     // Store the target color as data attribute
                     var targetColor = '';
+                    var textColor = 'white';
                     if (s === 0) {
                         targetColor = '#28a745';
                     } else if (s <= 3) {
                         targetColor = '#ffc107';
+                        textColor = '#333';
                     } else if (s <= 6) {
                         targetColor = '#ff9800';
                     } else {
                         targetColor = '#f44336';
                     }
                     scaleBtn.setAttribute('data-color', targetColor);
+                    scaleBtn.setAttribute('data-text-color', textColor);
                     
-                    scaleBtn.onclick = (function(patId, score) {
-                        return function() {
-                            // Reset all buttons for this patient
-                            for (var b = 0; b <= 10; b++) {
-                                var btn = document.getElementById('pain-btn-' + patId + '-' + b);
-                                if (btn) {
-                                    btn.style.background = '#e0e0e0';
-                                    btn.style.color = '#666';
-                                }
-                            }
-                            
-                            // Highlight selected button
-                            var selectedBtn = document.getElementById('pain-btn-' + patId + '-' + score);
-                            if (selectedBtn) {
-                                var color = selectedBtn.getAttribute('data-color');
-                                selectedBtn.style.background = color;
-                                selectedBtn.style.color = (score >= 1 && score <= 3) ? '#333' : 'white';
-                            }
-                            
-                            document.getElementById('pain-score-' + patId).value = score;
-                        };
-                    })(patient.id, s);
+                    scaleBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        var btn = e.currentTarget;
+                        var patId = btn.getAttribute('data-patient-id');
+                        var score = btn.getAttribute('data-score');
+                        var color = btn.getAttribute('data-color');
+                        var txtColor = btn.getAttribute('data-text-color');
+                        
+                        // Reset all buttons for this patient
+                        var allBtns = document.querySelectorAll('[data-patient-id="' + patId + '"]');
+                        for (var b = 0; b < allBtns.length; b++) {
+                            allBtns[b].style.background = '#e0e0e0';
+                            allBtns[b].style.color = '#666';
+                        }
+                        
+                        // Highlight selected button
+                        btn.style.background = color;
+                        btn.style.color = txtColor;
+                        
+                        // Set the hidden input value
+                        document.getElementById('pain-score-' + patId).value = score;
+                    });
                     
                     buttonsDiv.appendChild(scaleBtn);
                 }
