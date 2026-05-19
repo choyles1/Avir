@@ -562,6 +562,7 @@
         <div class="tabs">
             <button class="tab active" onclick="switchTab('schedule')">Schedule View</button>
             <button class="tab" onclick="switchTab('fsbs')">FSBS Log</button>
+            <button class="tab" onclick="switchTab('pain')">Pain Assessment</button>
             <button class="tab" onclick="switchTab('vitals')">Vitals</button>
             <button class="tab" onclick="switchTab('add-event')">Add Event</button>
             <button class="tab" onclick="switchTab('patients')">Manage Patients</button>
@@ -593,6 +594,13 @@
                 <h2 style="margin-bottom: 20px;">FSBS Log</h2>
                 
                 <div id="fsbs-patients-container"></div>
+            </div>
+
+            <!-- Pain Assessment View -->
+            <div id="pain-view" class="view">
+                <h2 style="margin-bottom: 20px;">Pain Assessment</h2>
+                
+                <div id="pain-patients-container"></div>
             </div>
 
             <!-- Vitals View -->
@@ -844,6 +852,7 @@
         var events = [];
         var vitals = [];
         var fsbsReadings = [];
+        var painAssessments = [];
         var currentFilter = 'all';
 
         // Initialize app
@@ -899,12 +908,14 @@
                         events = data.record.events || [];
                         vitals = data.record.vitals || [];
                         fsbsReadings = data.record.fsbsReadings || [];
+                        painAssessments = data.record.painAssessments || [];
                         
                         // Save to local storage
                         localStorage.setItem('patients', JSON.stringify(patients));
                         localStorage.setItem('events', JSON.stringify(events));
                         localStorage.setItem('vitals', JSON.stringify(vitals));
                         localStorage.setItem('fsbsReadings', JSON.stringify(fsbsReadings));
+                        localStorage.setItem('painAssessments', JSON.stringify(painAssessments));
                         
                         resetDailyCompletions();
                         updatePatientSelect();
@@ -929,6 +940,7 @@
                 events: events,
                 vitals: vitals,
                 fsbsReadings: fsbsReadings,
+                painAssessments: painAssessments,
                 lastUpdated: new Date().toISOString()
             };
 
@@ -950,11 +962,13 @@
             var eventsData = localStorage.getItem('events');
             var vitalsData = localStorage.getItem('vitals');
             var fsbsData = localStorage.getItem('fsbsReadings');
+            var painData = localStorage.getItem('painAssessments');
             
             patients = patientsData ? JSON.parse(patientsData) : [];
             events = eventsData ? JSON.parse(eventsData) : [];
             vitals = vitalsData ? JSON.parse(vitalsData) : [];
             fsbsReadings = fsbsData ? JSON.parse(fsbsData) : [];
+            painAssessments = painData ? JSON.parse(painData) : [];
         }
 
         function saveData() {
@@ -962,6 +976,7 @@
             localStorage.setItem('events', JSON.stringify(events));
             localStorage.setItem('vitals', JSON.stringify(vitals));
             localStorage.setItem('fsbsReadings', JSON.stringify(fsbsReadings));
+            localStorage.setItem('painAssessments', JSON.stringify(painAssessments));
             syncToCloud();
         }
 
@@ -980,7 +995,7 @@
         }
 
         function resetAllCompletions() {
-            if (confirm('Reset all completed events and clear today\'s FSBS readings?')) {
+            if (confirm('Reset all completed events and clear today\'s FSBS readings and pain assessments?')) {
                 for (var i = 0; i < events.length; i++) {
                     events[i].completed = false;
                 }
@@ -992,9 +1007,15 @@
                     return readingDate !== today;
                 });
                 
+                // Clear today's pain assessments
+                painAssessments = painAssessments.filter(function(assessment) {
+                    var assessmentDate = new Date(assessment.timestamp).toDateString();
+                    return assessmentDate !== today;
+                });
+                
                 saveData();
                 renderSchedule();
-                showSuccessMessage('All events reset and FSBS readings cleared!');
+                showSuccessMessage('All events reset, FSBS readings and pain assessments cleared!');
             }
         }
 
@@ -1036,6 +1057,8 @@
                 renderVitals();
             } else if (tabName === 'fsbs') {
                 renderFSBS();
+            } else if (tabName === 'pain') {
+                renderPain();
             }
         }
 
@@ -1847,6 +1870,244 @@
                 saveData();
                 renderFSBS();
                 showSuccessMessage('Reading deleted');
+            }
+        }
+
+        // Pain Assessment management
+        function renderPain() {
+            var container = document.getElementById('pain-patients-container');
+            
+            // Show all patients sorted by room number
+            var sortedPatients = patients.slice().sort(function(a, b) {
+                return a.room.localeCompare(b.room);
+            });
+            
+            if (sortedPatients.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">😔</div><p>No patients added yet. Go to "Manage Patients" to add patients.</p></div>';
+                return;
+            }
+            
+            var today = new Date().toDateString();
+            
+            container.innerHTML = '';
+            
+            for (var i = 0; i < sortedPatients.length; i++) {
+                var patient = sortedPatients[i];
+                
+                // Get today's pain assessments for this patient
+                var patientAssessments = painAssessments.filter(function(a) {
+                    var assessmentDate = new Date(a.timestamp).toDateString();
+                    return a.patientId === patient.id && assessmentDate === today;
+                });
+                
+                // Sort by time (most recent first)
+                patientAssessments.sort(function(a, b) {
+                    return new Date(b.timestamp) - new Date(a.timestamp);
+                });
+                
+                var patientCard = document.createElement('div');
+                patientCard.style.background = '#f8f9fa';
+                patientCard.style.padding = '20px';
+                patientCard.style.borderRadius = '8px';
+                patientCard.style.marginBottom = '20px';
+                patientCard.style.borderLeft = '4px solid #667eea';
+                
+                // Header
+                var headerDiv = document.createElement('div');
+                headerDiv.style.marginBottom = '15px';
+                
+                var nameDiv = document.createElement('div');
+                nameDiv.style.fontSize = '20px';
+                nameDiv.style.fontWeight = '700';
+                nameDiv.style.color = '#333';
+                nameDiv.textContent = patient.name + ' - Room ' + patient.room;
+                headerDiv.appendChild(nameDiv);
+                
+                patientCard.appendChild(headerDiv);
+                
+                // Pain scale selector
+                var scaleDiv = document.createElement('div');
+                scaleDiv.style.background = 'white';
+                scaleDiv.style.padding = '15px';
+                scaleDiv.style.borderRadius = '8px';
+                scaleDiv.style.marginBottom = '15px';
+                
+                var scaleTitle = document.createElement('div');
+                scaleTitle.style.fontWeight = '600';
+                scaleTitle.style.marginBottom = '12px';
+                scaleTitle.style.fontSize = '14px';
+                scaleTitle.textContent = 'Pain Level (0-10):';
+                scaleDiv.appendChild(scaleTitle);
+                
+                // Pain scale buttons
+                var buttonsDiv = document.createElement('div');
+                buttonsDiv.style.display = 'grid';
+                buttonsDiv.style.gridTemplateColumns = 'repeat(11, 1fr)';
+                buttonsDiv.style.gap = '8px';
+                buttonsDiv.style.marginBottom = '15px';
+                
+                for (var s = 0; s <= 10; s++) {
+                    var scaleBtn = document.createElement('button');
+                    scaleBtn.className = 'btn btn-small';
+                    scaleBtn.textContent = s.toString();
+                    scaleBtn.style.padding = '10px';
+                    scaleBtn.style.fontSize = '16px';
+                    scaleBtn.style.fontWeight = '700';
+                    
+                    // Color coding
+                    if (s === 0) {
+                        scaleBtn.style.background = '#28a745';
+                        scaleBtn.style.color = 'white';
+                    } else if (s <= 3) {
+                        scaleBtn.style.background = '#ffc107';
+                        scaleBtn.style.color = '#333';
+                    } else if (s <= 6) {
+                        scaleBtn.style.background = '#ff9800';
+                        scaleBtn.style.color = 'white';
+                    } else {
+                        scaleBtn.style.background = '#f44336';
+                        scaleBtn.style.color = 'white';
+                    }
+                    
+                    scaleBtn.onclick = (function(patId, score) {
+                        return function() {
+                            document.getElementById('pain-score-' + patId).value = score;
+                        };
+                    })(patient.id, s);
+                    
+                    buttonsDiv.appendChild(scaleBtn);
+                }
+                
+                scaleDiv.appendChild(buttonsDiv);
+                
+                // Location and notes
+                var detailsHtml = '<div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-bottom: 10px;">';
+                detailsHtml += '<div><input type="hidden" id="pain-score-' + patient.id + '" value=""><input type="text" id="pain-location-' + patient.id + '" placeholder="Location (e.g., lower back, knee)" style="width: 100%; padding: 8px; border: 2px solid #e0e0e0; border-radius: 6px;"></div>';
+                detailsHtml += '<div><input type="text" id="pain-notes-' + patient.id + '" placeholder="Notes (e.g., sharp, dull, radiating)" style="width: 100%; padding: 8px; border: 2px solid #e0e0e0; border-radius: 6px;"></div>';
+                detailsHtml += '</div>';
+                detailsHtml += '<button onclick="recordPain(\'' + patient.id + '\')" class="btn" style="width: 100%;">Record Pain Assessment</button>';
+                
+                scaleDiv.innerHTML += detailsHtml;
+                patientCard.appendChild(scaleDiv);
+                
+                // Today's assessments
+                if (patientAssessments.length > 0) {
+                    var assessTitle = document.createElement('div');
+                    assessTitle.style.fontWeight = '600';
+                    assessTitle.style.marginBottom = '10px';
+                    assessTitle.style.fontSize = '14px';
+                    assessTitle.textContent = 'Today\'s Assessments:';
+                    patientCard.appendChild(assessTitle);
+                    
+                    for (var j = 0; j < patientAssessments.length; j++) {
+                        var assessment = patientAssessments[j];
+                        
+                        var assessDiv = document.createElement('div');
+                        assessDiv.style.background = 'white';
+                        assessDiv.style.padding = '12px';
+                        assessDiv.style.borderRadius = '6px';
+                        assessDiv.style.marginBottom = '8px';
+                        assessDiv.style.display = 'flex';
+                        assessDiv.style.justifyContent = 'space-between';
+                        assessDiv.style.alignItems = 'center';
+                        
+                        var infoDiv = document.createElement('div');
+                        infoDiv.style.flex = '1';
+                        
+                        var scoreSpan = document.createElement('span');
+                        scoreSpan.style.fontSize = '20px';
+                        scoreSpan.style.fontWeight = '700';
+                        scoreSpan.style.marginRight = '15px';
+                        
+                        // Color code the pain score
+                        if (assessment.score === 0) {
+                            scoreSpan.style.color = '#28a745';
+                        } else if (assessment.score <= 3) {
+                            scoreSpan.style.color = '#ffc107';
+                        } else if (assessment.score <= 6) {
+                            scoreSpan.style.color = '#ff9800';
+                        } else {
+                            scoreSpan.style.color = '#f44336';
+                        }
+                        
+                        scoreSpan.textContent = assessment.score + '/10';
+                        
+                        var timeSpan = document.createElement('span');
+                        timeSpan.style.fontSize = '13px';
+                        timeSpan.style.color = '#666';
+                        timeSpan.textContent = new Date(assessment.timestamp).toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit'});
+                        
+                        var detailsSpan = document.createElement('div');
+                        detailsSpan.style.fontSize = '14px';
+                        detailsSpan.style.color = '#555';
+                        detailsSpan.style.marginTop = '4px';
+                        
+                        var detailsText = '';
+                        if (assessment.location) detailsText += assessment.location;
+                        if (assessment.notes) detailsText += (detailsText ? ' - ' : '') + assessment.notes;
+                        detailsSpan.textContent = detailsText;
+                        
+                        infoDiv.appendChild(scoreSpan);
+                        infoDiv.appendChild(timeSpan);
+                        if (detailsText) infoDiv.appendChild(detailsSpan);
+                        
+                        var deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'btn btn-small btn-danger';
+                        deleteBtn.textContent = 'Delete';
+                        deleteBtn.onclick = (function(assessId) {
+                            return function() {
+                                deletePainAssessment(assessId);
+                            };
+                        })(assessment.id);
+                        
+                        assessDiv.appendChild(infoDiv);
+                        assessDiv.appendChild(deleteBtn);
+                        
+                        patientCard.appendChild(assessDiv);
+                    }
+                }
+                
+                container.appendChild(patientCard);
+            }
+        }
+
+        function recordPain(patientId) {
+            var score = document.getElementById('pain-score-' + patientId).value;
+            var location = document.getElementById('pain-location-' + patientId).value.trim();
+            var notes = document.getElementById('pain-notes-' + patientId).value.trim();
+            
+            if (!score) {
+                showSuccessMessage('Please select a pain level (0-10)');
+                return;
+            }
+            
+            var assessment = {
+                id: Date.now().toString(),
+                patientId: patientId,
+                score: parseInt(score),
+                location: location,
+                notes: notes,
+                timestamp: new Date().toISOString()
+            };
+            
+            painAssessments.push(assessment);
+            saveData();
+            
+            // Clear inputs
+            document.getElementById('pain-score-' + patientId).value = '';
+            document.getElementById('pain-location-' + patientId).value = '';
+            document.getElementById('pain-notes-' + patientId).value = '';
+            
+            renderPain();
+            showSuccessMessage('Pain assessment recorded!');
+        }
+
+        function deletePainAssessment(assessmentId) {
+            if (confirm('Delete this pain assessment?')) {
+                painAssessments = painAssessments.filter(function(a) { return a.id !== assessmentId; });
+                saveData();
+                renderPain();
+                showSuccessMessage('Assessment deleted');
             }
         }
 
