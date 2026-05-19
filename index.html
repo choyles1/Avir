@@ -561,6 +561,7 @@
 
         <div class="tabs">
             <button class="tab active" onclick="switchTab('schedule')">Schedule View</button>
+            <button class="tab" onclick="switchTab('fsbs')">FSBS Log</button>
             <button class="tab" onclick="switchTab('vitals')">Vitals</button>
             <button class="tab" onclick="switchTab('add-event')">Add Event</button>
             <button class="tab" onclick="switchTab('patients')">Manage Patients</button>
@@ -585,6 +586,13 @@
                 </div>
                 
                 <div id="schedule-container"></div>
+            </div>
+
+            <!-- FSBS Log View -->
+            <div id="fsbs-view" class="view">
+                <h2 style="margin-bottom: 20px;">FSBS Log</h2>
+                
+                <div id="fsbs-patients-container"></div>
             </div>
 
             <!-- Vitals View -->
@@ -835,6 +843,7 @@
         var patients = [];
         var events = [];
         var vitals = [];
+        var fsbsReadings = [];
         var currentFilter = 'all';
 
         // Initialize app
@@ -891,6 +900,7 @@
                     patients = data.record.patients || [];
                     events = data.record.events || [];
                     vitals = data.record.vitals || [];
+                    fsbsReadings = data.record.fsbsReadings || [];
                     saveData();
                     resetDailyCompletions();
                     updatePatientSelect();
@@ -917,6 +927,7 @@
                 patients: patients,
                 events: events,
                 vitals: vitals,
+                fsbsReadings: fsbsReadings,
                 lastUpdated: new Date().toISOString()
             };
 
@@ -937,16 +948,19 @@
             var patientsData = localStorage.getItem('patients');
             var eventsData = localStorage.getItem('events');
             var vitalsData = localStorage.getItem('vitals');
+            var fsbsData = localStorage.getItem('fsbsReadings');
             
             patients = patientsData ? JSON.parse(patientsData) : [];
             events = eventsData ? JSON.parse(eventsData) : [];
             vitals = vitalsData ? JSON.parse(vitalsData) : [];
+            fsbsReadings = fsbsData ? JSON.parse(fsbsData) : [];
         }
 
         function saveData() {
             localStorage.setItem('patients', JSON.stringify(patients));
             localStorage.setItem('events', JSON.stringify(events));
             localStorage.setItem('vitals', JSON.stringify(vitals));
+            localStorage.setItem('fsbsReadings', JSON.stringify(fsbsReadings));
             syncToCloud();
         }
 
@@ -965,13 +979,21 @@
         }
 
         function resetAllCompletions() {
-            if (confirm('Reset all completed events? This will mark all "Done" events as incomplete.')) {
+            if (confirm('Reset all completed events and clear today\'s FSBS readings?')) {
                 for (var i = 0; i < events.length; i++) {
                     events[i].completed = false;
                 }
+                
+                // Clear today's FSBS readings
+                var today = new Date().toDateString();
+                fsbsReadings = fsbsReadings.filter(function(reading) {
+                    var readingDate = new Date(reading.timestamp).toDateString();
+                    return readingDate !== today;
+                });
+                
                 saveData();
                 renderSchedule();
-                showSuccessMessage('All events reset successfully!');
+                showSuccessMessage('All events reset and FSBS readings cleared!');
             }
         }
 
@@ -1011,6 +1033,8 @@
                 loadSettingsForm();
             } else if (tabName === 'vitals') {
                 renderVitals();
+            } else if (tabName === 'fsbs') {
+                renderFSBS();
             }
         }
 
@@ -1649,6 +1673,179 @@
                 saveData();
                 renderVitals();
                 showSuccessMessage('All vitals cleared');
+            }
+        }
+
+        // FSBS management
+        function renderFSBS() {
+            var container = document.getElementById('fsbs-patients-container');
+            
+            // Get patients with FSBS checked
+            var fsbsPatients = patients.filter(function(p) {
+                return p.careCategories && p.careCategories.fsbs && p.careCategories.fsbs.checked;
+            });
+            
+            if (fsbsPatients.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🩸</div><p>No patients have FSBS enabled. Go to "Manage Patients" to enable FSBS tracking.</p></div>';
+                return;
+            }
+            
+            // Sort by room number
+            fsbsPatients.sort(function(a, b) {
+                return a.room.localeCompare(b.room);
+            });
+            
+            var today = new Date().toDateString();
+            
+            container.innerHTML = '';
+            
+            for (var i = 0; i < fsbsPatients.length; i++) {
+                var patient = fsbsPatients[i];
+                
+                // Get today's readings for this patient
+                var patientReadings = fsbsReadings.filter(function(r) {
+                    var readingDate = new Date(r.timestamp).toDateString();
+                    return r.patientId === patient.id && readingDate === today;
+                });
+                
+                // Sort by time
+                patientReadings.sort(function(a, b) {
+                    return new Date(b.timestamp) - new Date(a.timestamp);
+                });
+                
+                var patientCard = document.createElement('div');
+                patientCard.style.background = '#f8f9fa';
+                patientCard.style.padding = '20px';
+                patientCard.style.borderRadius = '8px';
+                patientCard.style.marginBottom = '20px';
+                patientCard.style.borderLeft = '4px solid #667eea';
+                
+                // Header
+                var headerDiv = document.createElement('div');
+                headerDiv.style.marginBottom = '15px';
+                
+                var nameDiv = document.createElement('div');
+                nameDiv.style.fontSize = '20px';
+                nameDiv.style.fontWeight = '700';
+                nameDiv.style.color = '#333';
+                nameDiv.textContent = patient.name + ' - Room ' + patient.room;
+                headerDiv.appendChild(nameDiv);
+                
+                if (patient.careCategories.fsbs.note) {
+                    var noteDiv = document.createElement('div');
+                    noteDiv.style.fontSize = '14px';
+                    noteDiv.style.color = '#666';
+                    noteDiv.style.fontStyle = 'italic';
+                    noteDiv.style.marginTop = '4px';
+                    noteDiv.textContent = patient.careCategories.fsbs.note;
+                    headerDiv.appendChild(noteDiv);
+                }
+                
+                patientCard.appendChild(headerDiv);
+                
+                // Quick entry form
+                var formDiv = document.createElement('div');
+                formDiv.style.background = 'white';
+                formDiv.style.padding = '15px';
+                formDiv.style.borderRadius = '8px';
+                formDiv.style.marginBottom = '15px';
+                
+                var formHtml = '<div style="display: flex; gap: 10px; align-items: flex-end;">';
+                formHtml += '<div style="flex: 1;"><label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px;">Blood Sugar Reading</label>';
+                formHtml += '<input type="number" id="fsbs-reading-' + patient.id + '" placeholder="e.g., 120" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 16px;"></div>';
+                formHtml += '<button onclick="recordFSBS(\'' + patient.id + '\')" class="btn" style="padding: 10px 20px;">Record</button>';
+                formHtml += '</div>';
+                
+                formDiv.innerHTML = formHtml;
+                patientCard.appendChild(formDiv);
+                
+                // Today's readings
+                if (patientReadings.length > 0) {
+                    var readingsTitle = document.createElement('div');
+                    readingsTitle.style.fontWeight = '600';
+                    readingsTitle.style.marginBottom = '10px';
+                    readingsTitle.style.fontSize = '14px';
+                    readingsTitle.textContent = 'Today\'s Readings:';
+                    patientCard.appendChild(readingsTitle);
+                    
+                    for (var j = 0; j < patientReadings.length; j++) {
+                        var reading = patientReadings[j];
+                        
+                        var readingDiv = document.createElement('div');
+                        readingDiv.style.background = 'white';
+                        readingDiv.style.padding = '12px';
+                        readingDiv.style.borderRadius = '6px';
+                        readingDiv.style.marginBottom = '8px';
+                        readingDiv.style.display = 'flex';
+                        readingDiv.style.justifyContent = 'space-between';
+                        readingDiv.style.alignItems = 'center';
+                        
+                        var readingInfo = document.createElement('div');
+                        
+                        var valueSpan = document.createElement('span');
+                        valueSpan.style.fontSize = '18px';
+                        valueSpan.style.fontWeight = '700';
+                        valueSpan.style.color = '#667eea';
+                        valueSpan.textContent = reading.value + ' mg/dL';
+                        
+                        var timeSpan = document.createElement('span');
+                        timeSpan.style.fontSize = '13px';
+                        timeSpan.style.color = '#666';
+                        timeSpan.style.marginLeft = '15px';
+                        timeSpan.textContent = new Date(reading.timestamp).toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit'});
+                        
+                        readingInfo.appendChild(valueSpan);
+                        readingInfo.appendChild(timeSpan);
+                        
+                        var deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'btn btn-small btn-danger';
+                        deleteBtn.textContent = 'Delete';
+                        deleteBtn.onclick = (function(readingId) {
+                            return function() {
+                                deleteFSBSReading(readingId);
+                            };
+                        })(reading.id);
+                        
+                        readingDiv.appendChild(readingInfo);
+                        readingDiv.appendChild(deleteBtn);
+                        
+                        patientCard.appendChild(readingDiv);
+                    }
+                }
+                
+                container.appendChild(patientCard);
+            }
+        }
+
+        function recordFSBS(patientId) {
+            var input = document.getElementById('fsbs-reading-' + patientId);
+            var value = input.value.trim();
+            
+            if (!value || isNaN(value)) {
+                showSuccessMessage('Please enter a valid number');
+                return;
+            }
+            
+            var reading = {
+                id: Date.now().toString(),
+                patientId: patientId,
+                value: parseInt(value),
+                timestamp: new Date().toISOString()
+            };
+            
+            fsbsReadings.push(reading);
+            saveData();
+            input.value = '';
+            renderFSBS();
+            showSuccessMessage('FSBS reading recorded!');
+        }
+
+        function deleteFSBSReading(readingId) {
+            if (confirm('Delete this FSBS reading?')) {
+                fsbsReadings = fsbsReadings.filter(function(r) { return r.id !== readingId; });
+                saveData();
+                renderFSBS();
+                showSuccessMessage('Reading deleted');
             }
         }
 
