@@ -600,7 +600,52 @@
             <div id="pain-view" class="view">
                 <h2 style="margin-bottom: 20px;">Pain Assessment</h2>
                 
-                <div id="pain-patients-container"></div>
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+                    <h3 style="margin-bottom: 15px;">Record Pain Assessment</h3>
+                    <form id="pain-form">
+                        <div class="form-group">
+                            <label for="pain-patient">Patient</label>
+                            <select id="pain-patient" required>
+                                <option value="">Select a patient...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="pain-level">Pain Level (0-10)</label>
+                            <select id="pain-level" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px;">
+                                <option value="">Select pain level...</option>
+                                <option value="0">0 - No Pain</option>
+                                <option value="1">1 - Minimal</option>
+                                <option value="2">2 - Minimal</option>
+                                <option value="3">3 - Mild</option>
+                                <option value="4">4 - Moderate</option>
+                                <option value="5">5 - Moderate</option>
+                                <option value="6">6 - Moderate</option>
+                                <option value="7">7 - Severe</option>
+                                <option value="8">8 - Severe</option>
+                                <option value="9">9 - Severe</option>
+                                <option value="10">10 - Worst Pain</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="pain-location">Location</label>
+                            <input type="text" id="pain-location" placeholder="e.g., lower back, right knee">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="pain-notes">Notes</label>
+                            <textarea id="pain-notes" placeholder="Description (e.g., sharp, dull, radiating, constant)" style="min-height: 60px;"></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn">Record Pain Assessment</button>
+                    </form>
+                </div>
+                
+                <h3 style="margin-bottom: 15px;">Today's Pain Assessments</h3>
+                <div id="pain-list"></div>
+                
+                <div id="pain-report" style="margin-top: 30px;"></div>
             </div>
 
             <!-- Vitals View -->
@@ -1493,6 +1538,11 @@
                 vitalsSelect.innerHTML = '<option value="">Select a patient...</option>';
             }
             
+            var painSelect = document.getElementById('pain-patient');
+            if (painSelect) {
+                painSelect.innerHTML = '<option value="">Select a patient...</option>';
+            }
+            
             for (var i = 0; i < patients.length; i++) {
                 var option = document.createElement('option');
                 option.value = patients[i].id;
@@ -1504,6 +1554,13 @@
                     vitalsOption.value = patients[i].id;
                     vitalsOption.textContent = patients[i].name;
                     vitalsSelect.appendChild(vitalsOption);
+                }
+                
+                if (painSelect) {
+                    var painOption = document.createElement('option');
+                    painOption.value = patients[i].id;
+                    painOption.textContent = patients[i].name;
+                    painSelect.appendChild(painOption);
                 }
             }
         }
@@ -1874,7 +1931,181 @@
         }
 
         // Pain Assessment management
+        document.getElementById('pain-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            var patientId = document.getElementById('pain-patient').value;
+            var painLevel = document.getElementById('pain-level').value;
+            var location = document.getElementById('pain-location').value.trim();
+            var notes = document.getElementById('pain-notes').value.trim();
+            
+            if (patientId && painLevel) {
+                var assessment = {
+                    id: Date.now().toString(),
+                    patientId: patientId,
+                    score: parseInt(painLevel),
+                    location: location,
+                    notes: notes,
+                    timestamp: new Date().toISOString()
+                };
+                
+                painAssessments.push(assessment);
+                saveData();
+                
+                // Clear form
+                document.getElementById('pain-patient').value = '';
+                document.getElementById('pain-level').value = '';
+                document.getElementById('pain-location').value = '';
+                document.getElementById('pain-notes').value = '';
+                
+                renderPain();
+                showSuccessMessage('Pain assessment recorded!');
+            }
+        });
+
         function renderPain() {
+            var listContainer = document.getElementById('pain-list');
+            var reportContainer = document.getElementById('pain-report');
+            
+            // Get today's assessments
+            var today = new Date().toDateString();
+            var todayAssessments = painAssessments.filter(function(a) {
+                var assessmentDate = new Date(a.timestamp).toDateString();
+                return assessmentDate === today;
+            });
+            
+            // Sort by most recent first
+            todayAssessments.sort(function(a, b) {
+                return new Date(b.timestamp) - new Date(a.timestamp);
+            });
+            
+            // Render list
+            if (todayAssessments.length === 0) {
+                listContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">😔</div><p>No pain assessments recorded today</p></div>';
+            } else {
+                listContainer.innerHTML = '';
+                
+                for (var i = 0; i < todayAssessments.length; i++) {
+                    var assessment = todayAssessments[i];
+                    var patient = null;
+                    for (var j = 0; j < patients.length; j++) {
+                        if (patients[j].id === assessment.patientId) {
+                            patient = patients[j];
+                            break;
+                        }
+                    }
+                    
+                    if (!patient) continue;
+                    
+                    var assessCard = document.createElement('div');
+                    assessCard.style.background = '#f8f9fa';
+                    assessCard.style.padding = '20px';
+                    assessCard.style.borderRadius = '8px';
+                    assessCard.style.marginBottom = '15px';
+                    assessCard.style.borderLeft = '4px solid #667eea';
+                    
+                    var headerDiv = document.createElement('div');
+                    headerDiv.style.display = 'flex';
+                    headerDiv.style.justifyContent = 'space-between';
+                    headerDiv.style.alignItems = 'center';
+                    headerDiv.style.marginBottom = '15px';
+                    
+                    var titleDiv = document.createElement('div');
+                    var patientName = document.createElement('div');
+                    patientName.style.fontSize = '18px';
+                    patientName.style.fontWeight = '700';
+                    patientName.style.color = '#333';
+                    patientName.textContent = patient.name + ' - Room ' + patient.room;
+                    
+                    var timestamp = document.createElement('div');
+                    timestamp.style.fontSize = '13px';
+                    timestamp.style.color = '#666';
+                    timestamp.textContent = new Date(assessment.timestamp).toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit'});
+                    
+                    titleDiv.appendChild(patientName);
+                    titleDiv.appendChild(timestamp);
+                    
+                    var deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'btn btn-small btn-danger';
+                    deleteBtn.textContent = 'Delete';
+                    deleteBtn.onclick = (function(assessId) {
+                        return function() {
+                            deletePainAssessment(assessId);
+                        };
+                    })(assessment.id);
+                    
+                    headerDiv.appendChild(titleDiv);
+                    headerDiv.appendChild(deleteBtn);
+                    
+                    var detailsDiv = document.createElement('div');
+                    
+                    var scoreDiv = document.createElement('div');
+                    scoreDiv.style.fontSize = '24px';
+                    scoreDiv.style.fontWeight = '700';
+                    scoreDiv.style.marginBottom = '10px';
+                    
+                    // Color code the pain score
+                    if (assessment.score === 0) {
+                        scoreDiv.style.color = '#28a745';
+                    } else if (assessment.score <= 3) {
+                        scoreDiv.style.color = '#ffc107';
+                    } else if (assessment.score <= 6) {
+                        scoreDiv.style.color = '#ff9800';
+                    } else {
+                        scoreDiv.style.color = '#f44336';
+                    }
+                    
+                    scoreDiv.textContent = 'Pain Level: ' + assessment.score + '/10';
+                    
+                    detailsDiv.appendChild(scoreDiv);
+                    
+                    if (assessment.location) {
+                        var locationDiv = document.createElement('div');
+                        locationDiv.style.fontSize = '15px';
+                        locationDiv.style.marginBottom = '5px';
+                        locationDiv.innerHTML = '<strong>Location:</strong> ' + assessment.location;
+                        detailsDiv.appendChild(locationDiv);
+                    }
+                    
+                    if (assessment.notes) {
+                        var notesDiv = document.createElement('div');
+                        notesDiv.style.fontSize = '15px';
+                        notesDiv.innerHTML = '<strong>Notes:</strong> ' + assessment.notes;
+                        detailsDiv.appendChild(notesDiv);
+                    }
+                    
+                    assessCard.appendChild(headerDiv);
+                    assessCard.appendChild(detailsDiv);
+                    listContainer.appendChild(assessCard);
+                }
+            }
+            
+            // Render report summary
+            if (todayAssessments.length === 0) {
+                reportContainer.innerHTML = '';
+            } else {
+                // Calculate statistics
+                var totalAssessments = todayAssessments.length;
+                var noPain = todayAssessments.filter(function(a) { return a.score === 0; }).length;
+                var mildPain = todayAssessments.filter(function(a) { return a.score >= 1 && a.score <= 3; }).length;
+                var moderatePain = todayAssessments.filter(function(a) { return a.score >= 4 && a.score <= 6; }).length;
+                var severePain = todayAssessments.filter(function(a) { return a.score >= 7; }).length;
+                
+                var reportHtml = '<div style="background: #667eea; color: white; padding: 25px; border-radius: 8px;">';
+                reportHtml += '<h3 style="margin-bottom: 20px; color: white;">Today\'s Pain Report Summary</h3>';
+                reportHtml += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">';
+                reportHtml += '<div style="text-align: center;"><div style="font-size: 32px; font-weight: 700;">' + totalAssessments + '</div><div style="font-size: 14px; margin-top: 5px;">Total Assessments</div></div>';
+                reportHtml += '<div style="text-align: center;"><div style="font-size: 32px; font-weight: 700; color: #28a745;">' + noPain + '</div><div style="font-size: 14px; margin-top: 5px;">No Pain (0)</div></div>';
+                reportHtml += '<div style="text-align: center;"><div style="font-size: 32px; font-weight: 700; color: #ffc107;">' + mildPain + '</div><div style="font-size: 14px; margin-top: 5px;">Mild (1-3)</div></div>';
+                reportHtml += '<div style="text-align: center;"><div style="font-size: 32px; font-weight: 700; color: #ff9800;">' + moderatePain + '</div><div style="font-size: 14px; margin-top: 5px;">Moderate (4-6)</div></div>';
+                reportHtml += '<div style="text-align: center;"><div style="font-size: 32px; font-weight: 700; color: #f44336;">' + severePain + '</div><div style="font-size: 14px; margin-top: 5px;">Severe (7-10)</div></div>';
+                reportHtml += '</div></div>';
+                
+                reportContainer.innerHTML = reportHtml;
+            }
+        }
+
+        function deletePainAssessment(assessmentId) {
             var container = document.getElementById('pain-patients-container');
             
             // Show all patients sorted by room number
@@ -2249,37 +2480,6 @@
             }
             
             container.appendChild(reportDiv);
-        }
-
-        function recordPain(patientId) {
-            var score = document.getElementById('pain-score-' + patientId).value;
-            var location = document.getElementById('pain-location-' + patientId).value.trim();
-            var notes = document.getElementById('pain-notes-' + patientId).value.trim();
-            
-            if (!score) {
-                showSuccessMessage('Please select a pain level (0-10)');
-                return;
-            }
-            
-            var assessment = {
-                id: Date.now().toString(),
-                patientId: patientId,
-                score: parseInt(score),
-                location: location,
-                notes: notes,
-                timestamp: new Date().toISOString()
-            };
-            
-            painAssessments.push(assessment);
-            saveData();
-            
-            // Clear inputs
-            document.getElementById('pain-score-' + patientId).value = '';
-            document.getElementById('pain-location-' + patientId).value = '';
-            document.getElementById('pain-notes-' + patientId).value = '';
-            
-            renderPain();
-            showSuccessMessage('Pain assessment recorded!');
         }
 
         function deletePainAssessment(assessmentId) {
