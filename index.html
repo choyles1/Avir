@@ -849,14 +849,15 @@
         // Initialize app
         function init() {
             loadConfig();
+            loadData();
+            resetDailyCompletions();
+            updatePatientSelect();
+            updatePatientList();
+            renderSchedule();
+            
+            // Only sync from cloud if credentials are configured
             if (JSONBIN_BIN_ID && JSONBIN_API_KEY) {
                 syncFromCloud();
-            } else {
-                loadData();
-                resetDailyCompletions();
-                updatePatientSelect();
-                updatePatientList();
-                renderSchedule();
             }
         }
 
@@ -877,11 +878,6 @@
 
         function syncFromCloud() {
             if (!JSONBIN_BIN_ID || !JSONBIN_API_KEY) {
-                loadData();
-                resetDailyCompletions();
-                updatePatientSelect();
-                updatePatientList();
-                renderSchedule();
                 return;
             }
 
@@ -897,24 +893,29 @@
             })
             .then(function(data) {
                 if (data.record) {
-                    patients = data.record.patients || [];
-                    events = data.record.events || [];
-                    vitals = data.record.vitals || [];
-                    fsbsReadings = data.record.fsbsReadings || [];
-                    saveData();
-                    resetDailyCompletions();
-                    updatePatientSelect();
-                    updatePatientList();
-                    renderSchedule();
+                    // Only update if cloud has data
+                    if (data.record.patients) {
+                        patients = data.record.patients || [];
+                        events = data.record.events || [];
+                        vitals = data.record.vitals || [];
+                        fsbsReadings = data.record.fsbsReadings || [];
+                        
+                        // Save to local storage
+                        localStorage.setItem('patients', JSON.stringify(patients));
+                        localStorage.setItem('events', JSON.stringify(events));
+                        localStorage.setItem('vitals', JSON.stringify(vitals));
+                        localStorage.setItem('fsbsReadings', JSON.stringify(fsbsReadings));
+                        
+                        resetDailyCompletions();
+                        updatePatientSelect();
+                        updatePatientList();
+                        renderSchedule();
+                    }
                 }
             })
             .catch(function(error) {
                 console.error('Cloud sync error:', error);
-                loadData();
-                resetDailyCompletions();
-                updatePatientSelect();
-                updatePatientList();
-                renderSchedule();
+                // Keep local data on error - don't clear it
             });
         }
 
