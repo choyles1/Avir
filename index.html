@@ -563,6 +563,7 @@
             <button class="tab active" onclick="switchTab('schedule')">Schedule View</button>
             <button class="tab" onclick="switchTab('fsbs')">FSBS Log</button>
             <button class="tab" onclick="switchTab('pain')">Pain Assessment</button>
+            <button class="tab" onclick="switchTab('skin')">Skin Assessment</button>
             <button class="tab" onclick="switchTab('vitals')">Vitals</button>
             <button class="tab" onclick="switchTab('add-event')">Add Event</button>
             <button class="tab" onclick="switchTab('patients')">Manage Patients</button>
@@ -646,6 +647,58 @@
                 <div id="pain-list"></div>
                 
                 <div id="pain-report" style="margin-top: 30px;"></div>
+            </div>
+
+            <!-- Skin Assessment View -->
+            <div id="skin-view" class="view">
+                <h2 style="margin-bottom: 20px;">Skin Assessment</h2>
+                
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+                    <h3 style="margin-bottom: 15px;">Record Skin Assessment</h3>
+                    <form id="skin-form">
+                        <div class="form-group">
+                            <label for="skin-patient">Patient</label>
+                            <select id="skin-patient" required>
+                                <option value="">Select a patient...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="skin-notes">Skin Assessment Notes</label>
+                            <textarea id="skin-notes" required placeholder="Document skin condition, integrity, color, turgor, wounds, pressure areas, etc." style="min-height: 100px;"></textarea>
+                        </div>
+                        
+                        <h4 style="margin: 20px 0 15px 0;">Vital Signs</h4>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <div class="form-group">
+                                <label for="skin-bp">Blood Pressure</label>
+                                <input type="text" id="skin-bp" placeholder="e.g., 120/80">
+                            </div>
+                            <div class="form-group">
+                                <label for="skin-pulse">Pulse</label>
+                                <input type="text" id="skin-pulse" placeholder="e.g., 72">
+                            </div>
+                            <div class="form-group">
+                                <label for="skin-temp">Temperature (°F)</label>
+                                <input type="text" id="skin-temp" placeholder="e.g., 98.6">
+                            </div>
+                            <div class="form-group">
+                                <label for="skin-resp">Respiration</label>
+                                <input type="text" id="skin-resp" placeholder="e.g., 16">
+                            </div>
+                            <div class="form-group">
+                                <label for="skin-o2">O2 Sat (%)</label>
+                                <input type="text" id="skin-o2" placeholder="e.g., 98">
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn" style="margin-top: 15px;">Record Skin Assessment</button>
+                    </form>
+                </div>
+                
+                <h3 style="margin-bottom: 15px;">Today's Skin Assessments</h3>
+                <div id="skin-list"></div>
             </div>
 
             <!-- Vitals View -->
@@ -898,6 +951,7 @@
         var vitals = [];
         var fsbsReadings = [];
         var painAssessments = [];
+        var skinAssessments = [];
         var currentFilter = 'all';
 
         // Initialize app
@@ -954,6 +1008,7 @@
                         vitals = data.record.vitals || [];
                         fsbsReadings = data.record.fsbsReadings || [];
                         painAssessments = data.record.painAssessments || [];
+                        skinAssessments = data.record.skinAssessments || [];
                         
                         // Save to local storage
                         localStorage.setItem('patients', JSON.stringify(patients));
@@ -961,6 +1016,7 @@
                         localStorage.setItem('vitals', JSON.stringify(vitals));
                         localStorage.setItem('fsbsReadings', JSON.stringify(fsbsReadings));
                         localStorage.setItem('painAssessments', JSON.stringify(painAssessments));
+                        localStorage.setItem('skinAssessments', JSON.stringify(skinAssessments));
                         
                         resetDailyCompletions();
                         updatePatientSelect();
@@ -986,6 +1042,7 @@
                 vitals: vitals,
                 fsbsReadings: fsbsReadings,
                 painAssessments: painAssessments,
+                skinAssessments: skinAssessments,
                 lastUpdated: new Date().toISOString()
             };
 
@@ -1008,12 +1065,14 @@
             var vitalsData = localStorage.getItem('vitals');
             var fsbsData = localStorage.getItem('fsbsReadings');
             var painData = localStorage.getItem('painAssessments');
+            var skinData = localStorage.getItem('skinAssessments');
             
             patients = patientsData ? JSON.parse(patientsData) : [];
             events = eventsData ? JSON.parse(eventsData) : [];
             vitals = vitalsData ? JSON.parse(vitalsData) : [];
             fsbsReadings = fsbsData ? JSON.parse(fsbsData) : [];
             painAssessments = painData ? JSON.parse(painData) : [];
+            skinAssessments = skinData ? JSON.parse(skinData) : [];
         }
 
         function saveData() {
@@ -1022,6 +1081,7 @@
             localStorage.setItem('vitals', JSON.stringify(vitals));
             localStorage.setItem('fsbsReadings', JSON.stringify(fsbsReadings));
             localStorage.setItem('painAssessments', JSON.stringify(painAssessments));
+            localStorage.setItem('skinAssessments', JSON.stringify(skinAssessments));
             syncToCloud();
         }
 
@@ -1104,6 +1164,8 @@
                 renderFSBS();
             } else if (tabName === 'pain') {
                 renderPain();
+            } else if (tabName === 'skin') {
+                renderSkin();
             }
         }
 
@@ -1543,6 +1605,11 @@
                 painSelect.innerHTML = '<option value="">Select a patient...</option>';
             }
             
+            var skinSelect = document.getElementById('skin-patient');
+            if (skinSelect) {
+                skinSelect.innerHTML = '<option value="">Select a patient...</option>';
+            }
+            
             for (var i = 0; i < patients.length; i++) {
                 var option = document.createElement('option');
                 option.value = patients[i].id;
@@ -1561,6 +1628,13 @@
                     painOption.value = patients[i].id;
                     painOption.textContent = patients[i].name;
                     painSelect.appendChild(painOption);
+                }
+                
+                if (skinSelect) {
+                    var skinOption = document.createElement('option');
+                    skinOption.value = patients[i].id;
+                    skinOption.textContent = patients[i].name;
+                    skinSelect.appendChild(skinOption);
                 }
             }
         }
@@ -1611,10 +1685,29 @@
         });
 
         function renderVitals() {
+            // Update dropdown to exclude patients who already have vitals today
+            var today = new Date().toDateString();
+            var recordedPatientIds = vitals
+                .filter(function(v) {
+                    return new Date(v.timestamp).toDateString() === today;
+                })
+                .map(function(v) { return v.patientId; });
+            
+            var vitalsSelect = document.getElementById('vitals-patient');
+            vitalsSelect.innerHTML = '<option value="">Select a patient...</option>';
+            
+            for (var i = 0; i < patients.length; i++) {
+                if (recordedPatientIds.indexOf(patients[i].id) === -1) {
+                    var option = document.createElement('option');
+                    option.value = patients[i].id;
+                    option.textContent = patients[i].name;
+                    vitalsSelect.appendChild(option);
+                }
+            }
+            
             var container = document.getElementById('vitals-list');
             
             // Get today's vitals
-            var today = new Date().toDateString();
             var todayVitals = vitals.filter(function(v) {
                 var vDate = new Date(v.timestamp).toDateString();
                 return vDate === today;
@@ -1964,11 +2057,30 @@
         });
 
         function renderPain() {
+            // Update dropdown to exclude patients already assessed today
+            var today = new Date().toDateString();
+            var assessedPatientIds = painAssessments
+                .filter(function(a) {
+                    return new Date(a.timestamp).toDateString() === today;
+                })
+                .map(function(a) { return a.patientId; });
+            
+            var painSelect = document.getElementById('pain-patient');
+            painSelect.innerHTML = '<option value="">Select a patient...</option>';
+            
+            for (var i = 0; i < patients.length; i++) {
+                if (assessedPatientIds.indexOf(patients[i].id) === -1) {
+                    var option = document.createElement('option');
+                    option.value = patients[i].id;
+                    option.textContent = patients[i].name;
+                    painSelect.appendChild(option);
+                }
+            }
+            
             var listContainer = document.getElementById('pain-list');
             var reportContainer = document.getElementById('pain-report');
             
             // Get today's assessments
-            var today = new Date().toDateString();
             var todayAssessments = painAssessments.filter(function(a) {
                 var assessmentDate = new Date(a.timestamp).toDateString();
                 return assessmentDate === today;
@@ -2487,6 +2599,218 @@
                 painAssessments = painAssessments.filter(function(a) { return a.id !== assessmentId; });
                 saveData();
                 renderPain();
+                showSuccessMessage('Assessment deleted');
+            }
+        }
+
+        // Skin Assessment management
+        document.getElementById('skin-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            var patientId = document.getElementById('skin-patient').value;
+            var notes = document.getElementById('skin-notes').value.trim();
+            var bp = document.getElementById('skin-bp').value.trim();
+            var pulse = document.getElementById('skin-pulse').value.trim();
+            var temp = document.getElementById('skin-temp').value.trim();
+            var resp = document.getElementById('skin-resp').value.trim();
+            var o2 = document.getElementById('skin-o2').value.trim();
+            
+            if (patientId && notes) {
+                var assessment = {
+                    id: Date.now().toString(),
+                    patientId: patientId,
+                    notes: notes,
+                    vitals: {
+                        bp: bp,
+                        pulse: pulse,
+                        temp: temp,
+                        resp: resp,
+                        o2: o2
+                    },
+                    timestamp: new Date().toISOString()
+                };
+                
+                skinAssessments.push(assessment);
+                saveData();
+                
+                // Clear form
+                document.getElementById('skin-patient').value = '';
+                document.getElementById('skin-notes').value = '';
+                document.getElementById('skin-bp').value = '';
+                document.getElementById('skin-pulse').value = '';
+                document.getElementById('skin-temp').value = '';
+                document.getElementById('skin-resp').value = '';
+                document.getElementById('skin-o2').value = '';
+                
+                renderSkin();
+                showSuccessMessage('Skin assessment recorded!');
+            }
+        });
+
+        function renderSkin() {
+            // Update dropdown to exclude patients already assessed today
+            var today = new Date().toDateString();
+            var assessedPatientIds = skinAssessments
+                .filter(function(a) {
+                    return new Date(a.timestamp).toDateString() === today;
+                })
+                .map(function(a) { return a.patientId; });
+            
+            var skinSelect = document.getElementById('skin-patient');
+            skinSelect.innerHTML = '<option value="">Select a patient...</option>';
+            
+            for (var i = 0; i < patients.length; i++) {
+                if (assessedPatientIds.indexOf(patients[i].id) === -1) {
+                    var option = document.createElement('option');
+                    option.value = patients[i].id;
+                    option.textContent = patients[i].name;
+                    skinSelect.appendChild(option);
+                }
+            }
+            
+            var container = document.getElementById('skin-list');
+            
+            // Get today's assessments
+            var todayAssessments = skinAssessments.filter(function(a) {
+                var assessmentDate = new Date(a.timestamp).toDateString();
+                return assessmentDate === today;
+            });
+            
+            // Sort by most recent first
+            todayAssessments.sort(function(a, b) {
+                return new Date(b.timestamp) - new Date(a.timestamp);
+            });
+            
+            if (todayAssessments.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🩺</div><p>No skin assessments recorded today</p></div>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            for (var i = 0; i < todayAssessments.length; i++) {
+                var assessment = todayAssessments[i];
+                var patient = null;
+                for (var j = 0; j < patients.length; j++) {
+                    if (patients[j].id === assessment.patientId) {
+                        patient = patients[j];
+                        break;
+                    }
+                }
+                
+                if (!patient) continue;
+                
+                var assessCard = document.createElement('div');
+                assessCard.style.background = '#f8f9fa';
+                assessCard.style.padding = '20px';
+                assessCard.style.borderRadius = '8px';
+                assessCard.style.marginBottom = '15px';
+                assessCard.style.borderLeft = '4px solid #667eea';
+                
+                var headerDiv = document.createElement('div');
+                headerDiv.style.display = 'flex';
+                headerDiv.style.justifyContent = 'space-between';
+                headerDiv.style.alignItems = 'center';
+                headerDiv.style.marginBottom = '15px';
+                
+                var titleDiv = document.createElement('div');
+                var patientName = document.createElement('div');
+                patientName.style.fontSize = '18px';
+                patientName.style.fontWeight = '700';
+                patientName.style.color = '#333';
+                patientName.textContent = patient.name + ' - Room ' + patient.room;
+                
+                var timestamp = document.createElement('div');
+                timestamp.style.fontSize = '13px';
+                timestamp.style.color = '#666';
+                var date = new Date(assessment.timestamp);
+                timestamp.textContent = date.toLocaleDateString('en-US') + ' ' + date.toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit'});
+                
+                titleDiv.appendChild(patientName);
+                titleDiv.appendChild(timestamp);
+                
+                var deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn btn-small btn-danger';
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.onclick = (function(assessId) {
+                    return function() {
+                        deleteSkinAssessment(assessId);
+                    };
+                })(assessment.id);
+                
+                headerDiv.appendChild(titleDiv);
+                headerDiv.appendChild(deleteBtn);
+                
+                assessCard.appendChild(headerDiv);
+                
+                // Notes
+                var notesDiv = document.createElement('div');
+                notesDiv.style.background = 'white';
+                notesDiv.style.padding = '15px';
+                notesDiv.style.borderRadius = '6px';
+                notesDiv.style.marginBottom = '15px';
+                notesDiv.style.whiteSpace = 'pre-wrap';
+                notesDiv.innerHTML = '<strong>Assessment Notes:</strong><br>' + assessment.notes;
+                assessCard.appendChild(notesDiv);
+                
+                // Vitals if any recorded
+                var hasVitals = assessment.vitals.bp || assessment.vitals.pulse || assessment.vitals.temp || assessment.vitals.resp || assessment.vitals.o2;
+                if (hasVitals) {
+                    var vitalsDiv = document.createElement('div');
+                    vitalsDiv.style.background = 'white';
+                    vitalsDiv.style.padding = '15px';
+                    vitalsDiv.style.borderRadius = '6px';
+                    
+                    var vitalsTitle = document.createElement('div');
+                    vitalsTitle.style.fontWeight = '600';
+                    vitalsTitle.style.marginBottom = '10px';
+                    vitalsTitle.textContent = 'Vital Signs:';
+                    vitalsDiv.appendChild(vitalsTitle);
+                    
+                    var vitalsGrid = document.createElement('div');
+                    vitalsGrid.style.display = 'grid';
+                    vitalsGrid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(150px, 1fr))';
+                    vitalsGrid.style.gap = '12px';
+                    
+                    if (assessment.vitals.bp) {
+                        var bpDiv = document.createElement('div');
+                        bpDiv.innerHTML = '<strong>BP:</strong> ' + assessment.vitals.bp;
+                        vitalsGrid.appendChild(bpDiv);
+                    }
+                    if (assessment.vitals.pulse) {
+                        var pulseDiv = document.createElement('div');
+                        pulseDiv.innerHTML = '<strong>Pulse:</strong> ' + assessment.vitals.pulse;
+                        vitalsGrid.appendChild(pulseDiv);
+                    }
+                    if (assessment.vitals.temp) {
+                        var tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = '<strong>Temp:</strong> ' + assessment.vitals.temp + '°F';
+                        vitalsGrid.appendChild(tempDiv);
+                    }
+                    if (assessment.vitals.resp) {
+                        var respDiv = document.createElement('div');
+                        respDiv.innerHTML = '<strong>Resp:</strong> ' + assessment.vitals.resp;
+                        vitalsGrid.appendChild(respDiv);
+                    }
+                    if (assessment.vitals.o2) {
+                        var o2Div = document.createElement('div');
+                        o2Div.innerHTML = '<strong>O2:</strong> ' + assessment.vitals.o2 + '%';
+                        vitalsGrid.appendChild(o2Div);
+                    }
+                    
+                    vitalsDiv.appendChild(vitalsGrid);
+                    assessCard.appendChild(vitalsDiv);
+                }
+                
+                container.appendChild(assessCard);
+            }
+        }
+
+        function deleteSkinAssessment(assessmentId) {
+            if (confirm('Delete this skin assessment?')) {
+                skinAssessments = skinAssessments.filter(function(a) { return a.id !== assessmentId; });
+                saveData();
+                renderSkin();
                 showSuccessMessage('Assessment deleted');
             }
         }
