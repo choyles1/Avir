@@ -2678,11 +2678,28 @@
                     })
                     .map(function(a) { return a.patientId; });
                 
+                // Add toggle button
+                var toggleBtn = document.createElement('button');
+                toggleBtn.type = 'button';
+                toggleBtn.className = 'btn btn-small';
+                toggleBtn.style.marginBottom = '15px';
+                toggleBtn.textContent = window.skinDueShowAll ? 'Hide Unmarked Patients' : 'Show All Patients';
+                toggleBtn.onclick = function() {
+                    window.skinDueShowAll = !window.skinDueShowAll;
+                    renderSkin();
+                };
+                checklistContainer.appendChild(toggleBtn);
+                
                 // Show all patients with checkboxes
                 for (var i = 0; i < patients.length; i++) {
                     var patient = patients[i];
                     var isAssessed = assessedPatientIds.indexOf(patient.id) !== -1;
                     var isDue = skinAssessmentsDue.indexOf(patient.id) !== -1;
+                    
+                    // Hide unmarked patients if toggle is off
+                    if (!window.skinDueShowAll && !isDue && !isAssessed) {
+                        continue;
+                    }
                     
                     var checkDiv = document.createElement('div');
                     checkDiv.style.marginBottom = '8px';
