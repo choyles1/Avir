@@ -653,6 +653,13 @@
             <div id="skin-view" class="view">
                 <h2 style="margin-bottom: 20px;">Skin Assessment</h2>
                 
+                <!-- Mark Patients Due Section -->
+                <div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #ffc107;">
+                    <h3 style="margin-bottom: 15px; color: #856404;">Mark Patients Due for Skin Assessment</h3>
+                    <p style="margin-bottom: 15px; color: #856404;">Select which patients need a skin assessment today. This helps you track who's due before completing the actual assessments.</p>
+                    <div id="skin-due-checklist"></div>
+                </div>
+                
                 <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
                     <h3 style="margin-bottom: 15px;">Record Skin Assessment</h3>
                     <form id="skin-form">
@@ -952,6 +959,7 @@
         var fsbsReadings = [];
         var painAssessments = [];
         var skinAssessments = [];
+        var skinAssessmentsDue = [];
         var currentFilter = 'all';
 
         // Initialize app
@@ -1009,6 +1017,7 @@
                         fsbsReadings = data.record.fsbsReadings || [];
                         painAssessments = data.record.painAssessments || [];
                         skinAssessments = data.record.skinAssessments || [];
+                        skinAssessmentsDue = data.record.skinAssessmentsDue || [];
                         
                         // Save to local storage
                         localStorage.setItem('patients', JSON.stringify(patients));
@@ -1017,6 +1026,7 @@
                         localStorage.setItem('fsbsReadings', JSON.stringify(fsbsReadings));
                         localStorage.setItem('painAssessments', JSON.stringify(painAssessments));
                         localStorage.setItem('skinAssessments', JSON.stringify(skinAssessments));
+                        localStorage.setItem('skinAssessmentsDue', JSON.stringify(skinAssessmentsDue));
                         
                         resetDailyCompletions();
                         updatePatientSelect();
@@ -1043,6 +1053,7 @@
                 fsbsReadings: fsbsReadings,
                 painAssessments: painAssessments,
                 skinAssessments: skinAssessments,
+                skinAssessmentsDue: skinAssessmentsDue,
                 lastUpdated: new Date().toISOString()
             };
 
@@ -1066,6 +1077,7 @@
             var fsbsData = localStorage.getItem('fsbsReadings');
             var painData = localStorage.getItem('painAssessments');
             var skinData = localStorage.getItem('skinAssessments');
+            var skinDueData = localStorage.getItem('skinAssessmentsDue');
             
             patients = patientsData ? JSON.parse(patientsData) : [];
             events = eventsData ? JSON.parse(eventsData) : [];
@@ -1073,6 +1085,7 @@
             fsbsReadings = fsbsData ? JSON.parse(fsbsData) : [];
             painAssessments = painData ? JSON.parse(painData) : [];
             skinAssessments = skinData ? JSON.parse(skinData) : [];
+            skinAssessmentsDue = skinDueData ? JSON.parse(skinDueData) : [];
         }
 
         function saveData() {
@@ -1082,6 +1095,7 @@
             localStorage.setItem('fsbsReadings', JSON.stringify(fsbsReadings));
             localStorage.setItem('painAssessments', JSON.stringify(painAssessments));
             localStorage.setItem('skinAssessments', JSON.stringify(skinAssessments));
+            localStorage.setItem('skinAssessmentsDue', JSON.stringify(skinAssessmentsDue));
             syncToCloud();
         }
 
@@ -2648,8 +2662,74 @@
         });
 
         function renderSkin() {
-            // Update dropdown to exclude patients already assessed today
             var today = new Date().toDateString();
+            
+            // Render the "Mark Patients Due" checklist
+            var checklistContainer = document.getElementById('skin-due-checklist');
+            checklistContainer.innerHTML = '';
+            
+            if (patients.length === 0) {
+                checklistContainer.innerHTML = '<p style="color: #856404;">No patients added yet.</p>';
+            } else {
+                // Get patients already assessed today
+                var assessedPatientIds = skinAssessments
+                    .filter(function(a) {
+                        return new Date(a.timestamp).toDateString() === today;
+                    })
+                    .map(function(a) { return a.patientId; });
+                
+                // Show all patients with checkboxes
+                for (var i = 0; i < patients.length; i++) {
+                    var patient = patients[i];
+                    var isAssessed = assessedPatientIds.indexOf(patient.id) !== -1;
+                    var isDue = skinAssessmentsDue.indexOf(patient.id) !== -1;
+                    
+                    var checkDiv = document.createElement('div');
+                    checkDiv.style.marginBottom = '8px';
+                    checkDiv.style.display = 'flex';
+                    checkDiv.style.alignItems = 'center';
+                    
+                    var checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = 'skin-due-' + patient.id;
+                    checkbox.checked = isDue;
+                    checkbox.disabled = isAssessed;
+                    checkbox.style.marginRight = '10px';
+                    checkbox.style.width = '18px';
+                    checkbox.style.height = '18px';
+                    
+                    checkbox.onchange = (function(patId) {
+                        return function(e) {
+                            if (e.target.checked) {
+                                if (skinAssessmentsDue.indexOf(patId) === -1) {
+                                    skinAssessmentsDue.push(patId);
+                                }
+                            } else {
+                                skinAssessmentsDue = skinAssessmentsDue.filter(function(id) { return id !== patId; });
+                            }
+                            saveData();
+                            renderSkin();
+                        };
+                    })(patient.id);
+                    
+                    var label = document.createElement('label');
+                    label.htmlFor = 'skin-due-' + patient.id;
+                    label.style.cursor = isAssessed ? 'default' : 'pointer';
+                    label.style.fontSize = '15px';
+                    label.style.color = isAssessed ? '#999' : '#856404';
+                    label.style.textDecoration = isAssessed ? 'line-through' : 'none';
+                    label.textContent = patient.name + ' - Room ' + patient.room;
+                    if (isAssessed) {
+                        label.textContent += ' ✓ Completed';
+                    }
+                    
+                    checkDiv.appendChild(checkbox);
+                    checkDiv.appendChild(label);
+                    checklistContainer.appendChild(checkDiv);
+                }
+            }
+            
+            // Update dropdown to show ONLY patients marked as due who haven't been assessed
             var assessedPatientIds = skinAssessments
                 .filter(function(a) {
                     return new Date(a.timestamp).toDateString() === today;
@@ -2659,13 +2739,26 @@
             var skinSelect = document.getElementById('skin-patient');
             skinSelect.innerHTML = '<option value="">Select a patient...</option>';
             
+            var dueCount = 0;
             for (var i = 0; i < patients.length; i++) {
-                if (assessedPatientIds.indexOf(patients[i].id) === -1) {
+                var isDue = skinAssessmentsDue.indexOf(patients[i].id) !== -1;
+                var isAssessed = assessedPatientIds.indexOf(patients[i].id) !== -1;
+                
+                if (isDue && !isAssessed) {
                     var option = document.createElement('option');
                     option.value = patients[i].id;
                     option.textContent = patients[i].name;
                     skinSelect.appendChild(option);
+                    dueCount++;
                 }
+            }
+            
+            // Show message if no patients are due
+            if (dueCount === 0 && skinAssessmentsDue.length > 0) {
+                var noPatients = document.createElement('option');
+                noPatients.value = '';
+                noPatients.textContent = 'All marked patients have been assessed ✓';
+                skinSelect.appendChild(noPatients);
             }
             
             var container = document.getElementById('skin-list');
