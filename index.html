@@ -612,21 +612,63 @@
                         </div>
                         
                         <div class="form-group">
-                            <label for="pain-level">Pain Level (0-10)</label>
-                            <select id="pain-level" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px;">
-                                <option value="">Select pain level...</option>
-                                <option value="0">0 - No Pain</option>
-                                <option value="1">1 - Minimal</option>
-                                <option value="2">2 - Minimal</option>
-                                <option value="3">3 - Mild</option>
-                                <option value="4">4 - Moderate</option>
-                                <option value="5">5 - Moderate</option>
-                                <option value="6">6 - Moderate</option>
-                                <option value="7">7 - Severe</option>
-                                <option value="8">8 - Severe</option>
-                                <option value="9">9 - Severe</option>
-                                <option value="10">10 - Worst Pain</option>
-                            </select>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="pain-nonverbal" style="width: 18px; height: 18px; margin-right: 10px;">
+                                <span style="font-weight: 600;">Nonverbal Patient (Use PAINAD Scale)</span>
+                            </label>
+                        </div>
+                        
+                        <!-- Standard 0-10 Scale -->
+                        <div id="pain-standard-fields">
+                            <div class="form-group">
+                                <label for="pain-level">Pain Level (0-10)</label>
+                                <select id="pain-level" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px;">
+                                    <option value="">Select pain level...</option>
+                                    <option value="0">0 - No Pain</option>
+                                    <option value="1">1 - Minimal</option>
+                                    <option value="2">2 - Minimal</option>
+                                    <option value="3">3 - Mild</option>
+                                    <option value="4">4 - Moderate</option>
+                                    <option value="5">5 - Moderate</option>
+                                    <option value="6">6 - Moderate</option>
+                                    <option value="7">7 - Severe</option>
+                                    <option value="8">8 - Severe</option>
+                                    <option value="9">9 - Severe</option>
+                                    <option value="10">10 - Worst Pain</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- PAINAD Scale Fields (Hidden by default) -->
+                        <div id="pain-nonverbal-fields" style="display: none;">
+                            <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                                <p style="margin: 0; font-size: 14px; color: #1565c0;"><strong>PAINAD Scale:</strong> Observe patient behavior and document findings for each category below.</p>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="pain-breathing">Breathing</label>
+                                <textarea id="pain-breathing" placeholder="e.g., Normal, labored, hyperventilation, Cheyne-Stokes" style="min-height: 50px;"></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="pain-vocalization">Negative Vocalization</label>
+                                <textarea id="pain-vocalization" placeholder="e.g., None, occasional moan, repeated calling out, loud moaning, crying" style="min-height: 50px;"></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="pain-facial">Facial Expression</label>
+                                <textarea id="pain-facial" placeholder="e.g., Smiling/inexpressive, sad/frightened, facial grimacing" style="min-height: 50px;"></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="pain-body">Body Language</label>
+                                <textarea id="pain-body" placeholder="e.g., Relaxed, tense, fidgeting, rigid, fists clenched, knees pulled up" style="min-height: 50px;"></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="pain-consolability">Consolability</label>
+                                <textarea id="pain-consolability" placeholder="e.g., No need to console, distracted by voice/touch, unable to console/distract/reassure" style="min-height: 50px;"></textarea>
+                            </div>
                         </div>
                         
                         <div class="form-group">
@@ -2038,36 +2080,95 @@
         }
 
         // Pain Assessment management
+        document.getElementById('pain-nonverbal').addEventListener('change', function() {
+            var isNonverbal = this.checked;
+            var standardFields = document.getElementById('pain-standard-fields');
+            var nonverbalFields = document.getElementById('pain-nonverbal-fields');
+            var painLevel = document.getElementById('pain-level');
+            
+            if (isNonverbal) {
+                standardFields.style.display = 'none';
+                nonverbalFields.style.display = 'block';
+                painLevel.removeAttribute('required');
+            } else {
+                standardFields.style.display = 'block';
+                nonverbalFields.style.display = 'none';
+                painLevel.setAttribute('required', 'required');
+            }
+        });
+        
         document.getElementById('pain-form').addEventListener('submit', function(e) {
             e.preventDefault();
             
             var patientId = document.getElementById('pain-patient').value;
-            var painLevel = document.getElementById('pain-level').value;
+            var isNonverbal = document.getElementById('pain-nonverbal').checked;
             var location = document.getElementById('pain-location').value.trim();
             var notes = document.getElementById('pain-notes').value.trim();
             
-            if (patientId && painLevel) {
-                var assessment = {
-                    id: Date.now().toString(),
-                    patientId: patientId,
-                    score: parseInt(painLevel),
-                    location: location,
-                    notes: notes,
-                    timestamp: new Date().toISOString()
-                };
+            var assessment = {
+                id: Date.now().toString(),
+                patientId: patientId,
+                location: location,
+                notes: notes,
+                timestamp: new Date().toISOString()
+            };
+            
+            if (isNonverbal) {
+                // PAINAD Scale assessment
+                var breathing = document.getElementById('pain-breathing').value.trim();
+                var vocalization = document.getElementById('pain-vocalization').value.trim();
+                var facial = document.getElementById('pain-facial').value.trim();
+                var body = document.getElementById('pain-body').value.trim();
+                var consolability = document.getElementById('pain-consolability').value.trim();
                 
-                painAssessments.push(assessment);
-                saveData();
+                if (patientId && (breathing || vocalization || facial || body || consolability)) {
+                    assessment.type = 'nonverbal';
+                    assessment.painad = {
+                        breathing: breathing,
+                        vocalization: vocalization,
+                        facial: facial,
+                        body: body,
+                        consolability: consolability
+                    };
+                } else {
+                    showSuccessMessage('Please complete at least one PAINAD field');
+                    return;
+                }
+            } else {
+                // Standard 0-10 scale
+                var painLevel = document.getElementById('pain-level').value;
                 
-                // Clear form
-                document.getElementById('pain-patient').value = '';
-                document.getElementById('pain-level').value = '';
-                document.getElementById('pain-location').value = '';
-                document.getElementById('pain-notes').value = '';
-                
-                renderPain();
-                showSuccessMessage('Pain assessment recorded!');
+                if (patientId && painLevel) {
+                    assessment.type = 'standard';
+                    assessment.score = parseInt(painLevel);
+                } else {
+                    showSuccessMessage('Please select a patient and pain level');
+                    return;
+                }
             }
+            
+            painAssessments.push(assessment);
+            saveData();
+            
+            // Clear form
+            document.getElementById('pain-patient').value = '';
+            document.getElementById('pain-level').value = '';
+            document.getElementById('pain-location').value = '';
+            document.getElementById('pain-notes').value = '';
+            document.getElementById('pain-nonverbal').checked = false;
+            document.getElementById('pain-breathing').value = '';
+            document.getElementById('pain-vocalization').value = '';
+            document.getElementById('pain-facial').value = '';
+            document.getElementById('pain-body').value = '';
+            document.getElementById('pain-consolability').value = '';
+            
+            // Reset to standard view
+            document.getElementById('pain-standard-fields').style.display = 'block';
+            document.getElementById('pain-nonverbal-fields').style.display = 'none';
+            document.getElementById('pain-level').setAttribute('required', 'required');
+            
+            renderPain();
+            showSuccessMessage('Pain assessment recorded!');
         });
 
         function renderPain() {
@@ -2165,25 +2266,62 @@
                     
                     var detailsDiv = document.createElement('div');
                     
-                    var scoreDiv = document.createElement('div');
-                    scoreDiv.style.fontSize = '24px';
-                    scoreDiv.style.fontWeight = '700';
-                    scoreDiv.style.marginBottom = '10px';
-                    
-                    // Color code the pain score
-                    if (assessment.score === 0) {
-                        scoreDiv.style.color = '#28a745';
-                    } else if (assessment.score <= 3) {
-                        scoreDiv.style.color = '#ffc107';
-                    } else if (assessment.score <= 6) {
-                        scoreDiv.style.color = '#ff9800';
+                    // Check if this is a nonverbal/PAINAD assessment or standard
+                    if (assessment.type === 'nonverbal' && assessment.painad) {
+                        // Display PAINAD assessment
+                        var painadTitle = document.createElement('div');
+                        painadTitle.style.fontSize = '18px';
+                        painadTitle.style.fontWeight = '700';
+                        painadTitle.style.marginBottom = '15px';
+                        painadTitle.style.color = '#1565c0';
+                        painadTitle.textContent = 'PAINAD Scale Assessment (Nonverbal)';
+                        detailsDiv.appendChild(painadTitle);
+                        
+                        var painadGrid = document.createElement('div');
+                        painadGrid.style.background = 'white';
+                        painadGrid.style.padding = '15px';
+                        painadGrid.style.borderRadius = '6px';
+                        painadGrid.style.marginBottom = '10px';
+                        
+                        var painadFields = [
+                            { label: 'Breathing', value: assessment.painad.breathing },
+                            { label: 'Negative Vocalization', value: assessment.painad.vocalization },
+                            { label: 'Facial Expression', value: assessment.painad.facial },
+                            { label: 'Body Language', value: assessment.painad.body },
+                            { label: 'Consolability', value: assessment.painad.consolability }
+                        ];
+                        
+                        for (var pf = 0; pf < painadFields.length; pf++) {
+                            if (painadFields[pf].value) {
+                                var fieldDiv = document.createElement('div');
+                                fieldDiv.style.marginBottom = '10px';
+                                fieldDiv.innerHTML = '<strong>' + painadFields[pf].label + ':</strong> ' + painadFields[pf].value;
+                                painadGrid.appendChild(fieldDiv);
+                            }
+                        }
+                        
+                        detailsDiv.appendChild(painadGrid);
                     } else {
-                        scoreDiv.style.color = '#f44336';
+                        // Display standard 0-10 scale
+                        var scoreDiv = document.createElement('div');
+                        scoreDiv.style.fontSize = '24px';
+                        scoreDiv.style.fontWeight = '700';
+                        scoreDiv.style.marginBottom = '10px';
+                        
+                        // Color code the pain score
+                        if (assessment.score === 0) {
+                            scoreDiv.style.color = '#28a745';
+                        } else if (assessment.score <= 3) {
+                            scoreDiv.style.color = '#ffc107';
+                        } else if (assessment.score <= 6) {
+                            scoreDiv.style.color = '#ff9800';
+                        } else {
+                            scoreDiv.style.color = '#f44336';
+                        }
+                        
+                        scoreDiv.textContent = 'Pain Level: ' + assessment.score + '/10';
+                        detailsDiv.appendChild(scoreDiv);
                     }
-                    
-                    scoreDiv.textContent = 'Pain Level: ' + assessment.score + '/10';
-                    
-                    detailsDiv.appendChild(scoreDiv);
                     
                     if (assessment.location) {
                         var locationDiv = document.createElement('div');
@@ -2210,21 +2348,32 @@
             if (todayAssessments.length === 0) {
                 reportContainer.innerHTML = '';
             } else {
-                // Calculate statistics
+                // Calculate statistics (only for standard assessments)
                 var totalAssessments = todayAssessments.length;
-                var noPain = todayAssessments.filter(function(a) { return a.score === 0; }).length;
-                var mildPain = todayAssessments.filter(function(a) { return a.score >= 1 && a.score <= 3; }).length;
-                var moderatePain = todayAssessments.filter(function(a) { return a.score >= 4 && a.score <= 6; }).length;
-                var severePain = todayAssessments.filter(function(a) { return a.score >= 7; }).length;
+                var standardAssessments = todayAssessments.filter(function(a) { return a.type !== 'nonverbal'; });
+                var nonverbalAssessments = todayAssessments.filter(function(a) { return a.type === 'nonverbal'; });
+                
+                var noPain = standardAssessments.filter(function(a) { return a.score === 0; }).length;
+                var mildPain = standardAssessments.filter(function(a) { return a.score >= 1 && a.score <= 3; }).length;
+                var moderatePain = standardAssessments.filter(function(a) { return a.score >= 4 && a.score <= 6; }).length;
+                var severePain = standardAssessments.filter(function(a) { return a.score >= 7; }).length;
                 
                 var reportHtml = '<div style="background: #667eea; color: white; padding: 25px; border-radius: 8px;">';
                 reportHtml += '<h3 style="margin-bottom: 20px; color: white;">Today\'s Pain Report Summary</h3>';
                 reportHtml += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">';
                 reportHtml += '<div style="text-align: center;"><div style="font-size: 32px; font-weight: 700;">' + totalAssessments + '</div><div style="font-size: 14px; margin-top: 5px;">Total Assessments</div></div>';
-                reportHtml += '<div style="text-align: center;"><div style="font-size: 32px; font-weight: 700; color: #28a745;">' + noPain + '</div><div style="font-size: 14px; margin-top: 5px;">No Pain (0)</div></div>';
-                reportHtml += '<div style="text-align: center;"><div style="font-size: 32px; font-weight: 700; color: #ffc107;">' + mildPain + '</div><div style="font-size: 14px; margin-top: 5px;">Mild (1-3)</div></div>';
-                reportHtml += '<div style="text-align: center;"><div style="font-size: 32px; font-weight: 700; color: #ff9800;">' + moderatePain + '</div><div style="font-size: 14px; margin-top: 5px;">Moderate (4-6)</div></div>';
-                reportHtml += '<div style="text-align: center;"><div style="font-size: 32px; font-weight: 700; color: #f44336;">' + severePain + '</div><div style="font-size: 14px; margin-top: 5px;">Severe (7-10)</div></div>';
+                
+                if (standardAssessments.length > 0) {
+                    reportHtml += '<div style="text-align: center;"><div style="font-size: 32px; font-weight: 700; color: #28a745;">' + noPain + '</div><div style="font-size: 14px; margin-top: 5px;">No Pain (0)</div></div>';
+                    reportHtml += '<div style="text-align: center;"><div style="font-size: 32px; font-weight: 700; color: #ffc107;">' + mildPain + '</div><div style="font-size: 14px; margin-top: 5px;">Mild (1-3)</div></div>';
+                    reportHtml += '<div style="text-align: center;"><div style="font-size: 32px; font-weight: 700; color: #ff9800;">' + moderatePain + '</div><div style="font-size: 14px; margin-top: 5px;">Moderate (4-6)</div></div>';
+                    reportHtml += '<div style="text-align: center;"><div style="font-size: 32px; font-weight: 700; color: #f44336;">' + severePain + '</div><div style="font-size: 14px; margin-top: 5px;">Severe (7-10)</div></div>';
+                }
+                
+                if (nonverbalAssessments.length > 0) {
+                    reportHtml += '<div style="text-align: center;"><div style="font-size: 32px; font-weight: 700; color: #1565c0;">' + nonverbalAssessments.length + '</div><div style="font-size: 14px; margin-top: 5px;">PAINAD Scale</div></div>';
+                }
+                
                 reportHtml += '</div></div>';
                 
                 reportContainer.innerHTML = reportHtml;
