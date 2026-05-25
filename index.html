@@ -613,6 +613,13 @@
                         
                         <div class="form-group">
                             <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="pain-asleep" style="width: 18px; height: 18px; margin-right: 10px;">
+                                <span style="font-weight: 600;">Patient Asleep (unable to assess pain)</span>
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
                                 <input type="checkbox" id="pain-nonverbal" style="width: 18px; height: 18px; margin-right: 10px;">
                                 <span style="font-weight: 600;">Nonverbal Patient (Use PAINAD Scale)</span>
                             </label>
@@ -738,6 +745,13 @@
                         </div>
                         
                         <div class="form-group">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="skin-no-issues" style="width: 18px; height: 18px; margin-right: 10px;">
+                                <span style="font-weight: 600;">No Issues (skin intact, no concerns)</span>
+                            </label>
+                        </div>
+                        
+                        <div class="form-group" id="skin-notes-group">
                             <label for="skin-notes">Skin Assessment Notes</label>
                             <textarea id="skin-notes" required placeholder="Document skin condition, integrity, color, turgor, wounds, pressure areas, etc." style="min-height: 100px;"></textarea>
                         </div>
@@ -2105,6 +2119,30 @@
         }
 
         // Pain Assessment management
+        document.getElementById('pain-asleep').addEventListener('change', function() {
+            var isAsleep = this.checked;
+            var standardFields = document.getElementById('pain-standard-fields');
+            var nonverbalFields = document.getElementById('pain-nonverbal-fields');
+            var painLevel = document.getElementById('pain-level');
+            var nonverbalCheckbox = document.getElementById('pain-nonverbal');
+            
+            if (isAsleep) {
+                // Hide all pain assessment fields
+                standardFields.style.display = 'none';
+                nonverbalFields.style.display = 'none';
+                painLevel.removeAttribute('required');
+                // Uncheck and disable nonverbal checkbox
+                nonverbalCheckbox.checked = false;
+                nonverbalCheckbox.disabled = true;
+            } else {
+                // Show standard fields
+                standardFields.style.display = 'block';
+                painLevel.setAttribute('required', 'required');
+                // Re-enable nonverbal checkbox
+                nonverbalCheckbox.disabled = false;
+            }
+        });
+        
         document.getElementById('pain-nonverbal').addEventListener('change', function() {
             var isNonverbal = this.checked;
             var standardFields = document.getElementById('pain-standard-fields');
@@ -2122,10 +2160,27 @@
             }
         });
         
+        document.getElementById('skin-no-issues').addEventListener('change', function() {
+            var noIssues = this.checked;
+            var notesField = document.getElementById('skin-notes');
+            
+            if (noIssues) {
+                notesField.removeAttribute('required');
+                notesField.placeholder = 'No issues noted - skin intact, no concerns';
+                notesField.disabled = true;
+                notesField.value = '';
+            } else {
+                notesField.setAttribute('required', 'required');
+                notesField.placeholder = 'Document skin condition, integrity, color, turgor, wounds, pressure areas, etc.';
+                notesField.disabled = false;
+            }
+        });
+        
         document.getElementById('pain-form').addEventListener('submit', function(e) {
             e.preventDefault();
             
             var patientId = document.getElementById('pain-patient').value;
+            var isAsleep = document.getElementById('pain-asleep').checked;
             var isNonverbal = document.getElementById('pain-nonverbal').checked;
             var location = document.getElementById('pain-location').value.trim();
             var notes = document.getElementById('pain-notes').value.trim();
@@ -2138,7 +2193,16 @@
                 timestamp: new Date().toISOString()
             };
             
-            if (isNonverbal) {
+            if (isAsleep) {
+                // Patient asleep - no pain assessment needed
+                if (patientId) {
+                    assessment.type = 'asleep';
+                    assessment.score = null;
+                } else {
+                    showSuccessMessage('Please select a patient');
+                    return;
+                }
+            } else if (isNonverbal) {
                 // PAINAD Scale assessment
                 var breathing = document.getElementById('pain-breathing').value.trim();
                 var vocalization = document.getElementById('pain-vocalization').value.trim();
@@ -2180,7 +2244,9 @@
             document.getElementById('pain-level').value = '';
             document.getElementById('pain-location').value = '';
             document.getElementById('pain-notes').value = '';
+            document.getElementById('pain-asleep').checked = false;
             document.getElementById('pain-nonverbal').checked = false;
+            document.getElementById('pain-nonverbal').disabled = false;
             document.getElementById('pain-breathing').value = '';
             document.getElementById('pain-vocalization').value = '';
             document.getElementById('pain-facial').value = '';
@@ -2291,8 +2357,18 @@
                     
                     var detailsDiv = document.createElement('div');
                     
-                    // Check if this is a nonverbal/PAINAD assessment or standard
-                    if (assessment.type === 'nonverbal' && assessment.painad) {
+                    // Check if this is asleep, nonverbal/PAINAD, or standard assessment
+                    if (assessment.type === 'asleep') {
+                        // Display Asleep status
+                        var asleepDiv = document.createElement('div');
+                        asleepDiv.style.fontSize = '20px';
+                        asleepDiv.style.fontWeight = '700';
+                        asleepDiv.style.marginBottom = '10px';
+                        asleepDiv.style.color = '#6c757d';
+                        asleepDiv.style.fontStyle = 'italic';
+                        asleepDiv.textContent = '😴 Patient Asleep - Unable to assess pain';
+                        detailsDiv.appendChild(asleepDiv);
+                    } else if (assessment.type === 'nonverbal' && assessment.painad) {
                         // Display PAINAD assessment
                         var painadTitle = document.createElement('div');
                         painadTitle.style.fontSize = '18px';
@@ -2796,6 +2872,7 @@
             e.preventDefault();
             
             var patientId = document.getElementById('skin-patient').value;
+            var noIssues = document.getElementById('skin-no-issues').checked;
             var notes = document.getElementById('skin-notes').value.trim();
             var bp = document.getElementById('skin-bp').value.trim();
             var pulse = document.getElementById('skin-pulse').value.trim();
@@ -2803,11 +2880,12 @@
             var resp = document.getElementById('skin-resp').value.trim();
             var o2 = document.getElementById('skin-o2').value.trim();
             
-            if (patientId && notes) {
+            if (patientId) {
                 var assessment = {
                     id: Date.now().toString(),
                     patientId: patientId,
-                    notes: notes,
+                    notes: noIssues ? 'No issues - skin intact, no concerns' : notes,
+                    noIssues: noIssues,
                     vitals: {
                         bp: bp,
                         pulse: pulse,
@@ -2823,7 +2901,11 @@
                 
                 // Clear form
                 document.getElementById('skin-patient').value = '';
+                document.getElementById('skin-no-issues').checked = false;
                 document.getElementById('skin-notes').value = '';
+                document.getElementById('skin-notes').disabled = false;
+                document.getElementById('skin-notes').setAttribute('required', 'required');
+                document.getElementById('skin-notes').placeholder = 'Document skin condition, integrity, color, turgor, wounds, pressure areas, etc.';
                 document.getElementById('skin-bp').value = '';
                 document.getElementById('skin-pulse').value = '';
                 document.getElementById('skin-temp').value = '';
@@ -3029,12 +3111,17 @@
                 
                 // Notes
                 var notesDiv = document.createElement('div');
-                notesDiv.style.background = 'white';
+                notesDiv.style.background = assessment.noIssues ? '#d4edda' : 'white';
                 notesDiv.style.padding = '15px';
                 notesDiv.style.borderRadius = '6px';
                 notesDiv.style.marginBottom = '15px';
                 notesDiv.style.whiteSpace = 'pre-wrap';
-                notesDiv.innerHTML = '<strong>Assessment Notes:</strong><br>' + assessment.notes;
+                
+                if (assessment.noIssues) {
+                    notesDiv.innerHTML = '<strong style="color: #155724;">✓ No Issues:</strong><br><span style="color: #155724;">' + assessment.notes + '</span>';
+                } else {
+                    notesDiv.innerHTML = '<strong>Assessment Notes:</strong><br>' + assessment.notes;
+                }
                 assessCard.appendChild(notesDiv);
                 
                 // Vitals if any recorded
