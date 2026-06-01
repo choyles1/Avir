@@ -564,6 +564,7 @@
             <button class="tab" onclick="switchTab('fsbs')">FSBS Log</button>
             <button class="tab" onclick="switchTab('pain')">Pain Assessment</button>
             <button class="tab" onclick="switchTab('skin')">Skin Assessment</button>
+            <button class="tab" onclick="switchTab('fridge')">Fridge Temp</button>
             <button class="tab" onclick="switchTab('vitals')">Vitals</button>
             <button class="tab" onclick="switchTab('add-event')">Add Event</button>
             <button class="tab" onclick="switchTab('patients')">Manage Patients</button>
@@ -787,6 +788,38 @@
                 
                 <h3 style="margin-bottom: 15px;">Today's Skin Assessments</h3>
                 <div id="skin-list"></div>
+            </div>
+
+            <!-- Fridge Temp View -->
+            <div id="fridge-view" class="view">
+                <h2 style="margin-bottom: 20px;">Refrigerator Temperature</h2>
+                
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+                    <h3 style="margin-bottom: 15px;">Record Temperature</h3>
+                    <form id="fridge-form">
+                        <div class="form-group">
+                            <label for="fridge-patient">Patient</label>
+                            <select id="fridge-patient" required>
+                                <option value="">Select a patient...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="fridge-temp">Temperature (°F)</label>
+                            <input type="text" id="fridge-temp" placeholder="e.g., 38" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="fridge-notes">Notes</label>
+                            <textarea id="fridge-notes" placeholder="e.g., Within range, needs adjustment, alarm triggered" style="min-height: 60px;"></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn">Record Temperature</button>
+                    </form>
+                </div>
+                
+                <h3 style="margin-bottom: 15px;">Today's Temperature Readings</h3>
+                <div id="fridge-list"></div>
             </div>
 
             <!-- Vitals View -->
@@ -1041,6 +1074,7 @@
         var painAssessments = [];
         var skinAssessments = [];
         var skinAssessmentsDue = [];
+        var fridgeTemps = [];
         var currentFilter = 'all';
 
         // Initialize app
@@ -1099,6 +1133,7 @@
                         painAssessments = data.record.painAssessments || [];
                         skinAssessments = data.record.skinAssessments || [];
                         skinAssessmentsDue = data.record.skinAssessmentsDue || [];
+                        fridgeTemps = data.record.fridgeTemps || [];
                         
                         // Save to local storage
                         localStorage.setItem('patients', JSON.stringify(patients));
@@ -1108,6 +1143,7 @@
                         localStorage.setItem('painAssessments', JSON.stringify(painAssessments));
                         localStorage.setItem('skinAssessments', JSON.stringify(skinAssessments));
                         localStorage.setItem('skinAssessmentsDue', JSON.stringify(skinAssessmentsDue));
+                        localStorage.setItem('fridgeTemps', JSON.stringify(fridgeTemps));
                         
                         resetDailyCompletions();
                         updatePatientSelect();
@@ -1135,6 +1171,7 @@
                 painAssessments: painAssessments,
                 skinAssessments: skinAssessments,
                 skinAssessmentsDue: skinAssessmentsDue,
+                fridgeTemps: fridgeTemps,
                 lastUpdated: new Date().toISOString()
             };
 
@@ -1159,6 +1196,7 @@
             var painData = localStorage.getItem('painAssessments');
             var skinData = localStorage.getItem('skinAssessments');
             var skinDueData = localStorage.getItem('skinAssessmentsDue');
+            var fridgeData = localStorage.getItem('fridgeTemps');
             
             patients = patientsData ? JSON.parse(patientsData) : [];
             events = eventsData ? JSON.parse(eventsData) : [];
@@ -1167,6 +1205,7 @@
             painAssessments = painData ? JSON.parse(painData) : [];
             skinAssessments = skinData ? JSON.parse(skinData) : [];
             skinAssessmentsDue = skinDueData ? JSON.parse(skinDueData) : [];
+            fridgeTemps = fridgeData ? JSON.parse(fridgeData) : [];
         }
 
         function saveData() {
@@ -1177,6 +1216,7 @@
             localStorage.setItem('painAssessments', JSON.stringify(painAssessments));
             localStorage.setItem('skinAssessments', JSON.stringify(skinAssessments));
             localStorage.setItem('skinAssessmentsDue', JSON.stringify(skinAssessmentsDue));
+            localStorage.setItem('fridgeTemps', JSON.stringify(fridgeTemps));
             syncToCloud();
         }
 
@@ -1195,7 +1235,7 @@
         }
 
         function resetAllCompletions() {
-            if (confirm('Reset all completed events and clear today\'s FSBS readings and pain assessments?')) {
+            if (confirm('Reset all completed events and clear today\'s FSBS readings, pain assessments, and refrigerator temps?')) {
                 for (var i = 0; i < events.length; i++) {
                     events[i].completed = false;
                 }
@@ -1213,9 +1253,15 @@
                     return assessmentDate !== today;
                 });
                 
+                // Clear today's fridge temps
+                fridgeTemps = fridgeTemps.filter(function(temp) {
+                    var tempDate = new Date(temp.timestamp).toDateString();
+                    return tempDate !== today;
+                });
+                
                 saveData();
                 renderSchedule();
-                showSuccessMessage('All events reset, FSBS readings and pain assessments cleared!');
+                showSuccessMessage('All events reset, FSBS readings, pain assessments, and fridge temps cleared!');
             }
         }
 
@@ -1261,6 +1307,8 @@
                 renderPain();
             } else if (tabName === 'skin') {
                 renderSkin();
+            } else if (tabName === 'fridge') {
+                renderFridge();
             }
         }
 
@@ -1705,6 +1753,11 @@
                 skinSelect.innerHTML = '<option value="">Select a patient...</option>';
             }
             
+            var fridgeSelect = document.getElementById('fridge-patient');
+            if (fridgeSelect) {
+                fridgeSelect.innerHTML = '<option value="">Select a patient...</option>';
+            }
+            
             for (var i = 0; i < patients.length; i++) {
                 var option = document.createElement('option');
                 option.value = patients[i].id;
@@ -1730,6 +1783,13 @@
                     skinOption.value = patients[i].id;
                     skinOption.textContent = patients[i].name;
                     skinSelect.appendChild(skinOption);
+                }
+                
+                if (fridgeSelect) {
+                    var fridgeOption = document.createElement('option');
+                    fridgeOption.value = patients[i].id;
+                    fridgeOption.textContent = patients[i].name;
+                    fridgeSelect.appendChild(fridgeOption);
                 }
             }
         }
@@ -3183,6 +3243,190 @@
                 saveData();
                 renderSkin();
                 showSuccessMessage('Assessment deleted');
+            }
+        }
+
+        // Refrigerator Temperature management
+        document.getElementById('fridge-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            var patientId = document.getElementById('fridge-patient').value;
+            var temp = document.getElementById('fridge-temp').value.trim();
+            var notes = document.getElementById('fridge-notes').value.trim();
+            
+            if (patientId && temp) {
+                var tempReading = {
+                    id: Date.now().toString(),
+                    patientId: patientId,
+                    temperature: parseFloat(temp),
+                    notes: notes,
+                    timestamp: new Date().toISOString()
+                };
+                
+                fridgeTemps.push(tempReading);
+                saveData();
+                
+                // Clear form
+                document.getElementById('fridge-patient').value = '';
+                document.getElementById('fridge-temp').value = '';
+                document.getElementById('fridge-notes').value = '';
+                
+                renderFridge();
+                showSuccessMessage('Temperature recorded!');
+            }
+        });
+
+        function renderFridge() {
+            // Update dropdown to exclude patients already recorded today
+            var today = new Date().toDateString();
+            var recordedPatientIds = fridgeTemps
+                .filter(function(t) {
+                    return new Date(t.timestamp).toDateString() === today;
+                })
+                .map(function(t) { return t.patientId; });
+            
+            var fridgeSelect = document.getElementById('fridge-patient');
+            fridgeSelect.innerHTML = '<option value="">Select a patient...</option>';
+            
+            for (var i = 0; i < patients.length; i++) {
+                if (recordedPatientIds.indexOf(patients[i].id) === -1) {
+                    var option = document.createElement('option');
+                    option.value = patients[i].id;
+                    option.textContent = patients[i].name;
+                    fridgeSelect.appendChild(option);
+                }
+            }
+            
+            var container = document.getElementById('fridge-list');
+            
+            // Get today's temps
+            var todayTemps = fridgeTemps.filter(function(t) {
+                var tempDate = new Date(t.timestamp).toDateString();
+                return tempDate === today;
+            });
+            
+            // Sort by most recent first
+            todayTemps.sort(function(a, b) {
+                return new Date(b.timestamp) - new Date(a.timestamp);
+            });
+            
+            if (todayTemps.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">❄️</div><p>No temperature readings recorded today</p></div>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            for (var i = 0; i < todayTemps.length; i++) {
+                var reading = todayTemps[i];
+                var patient = null;
+                for (var j = 0; j < patients.length; j++) {
+                    if (patients[j].id === reading.patientId) {
+                        patient = patients[j];
+                        break;
+                    }
+                }
+                
+                if (!patient) continue;
+                
+                var readingCard = document.createElement('div');
+                readingCard.style.background = '#f8f9fa';
+                readingCard.style.padding = '20px';
+                readingCard.style.borderRadius = '8px';
+                readingCard.style.marginBottom = '15px';
+                readingCard.style.borderLeft = '4px solid #667eea';
+                
+                var headerDiv = document.createElement('div');
+                headerDiv.style.display = 'flex';
+                headerDiv.style.justifyContent = 'space-between';
+                headerDiv.style.alignItems = 'center';
+                headerDiv.style.marginBottom = '15px';
+                
+                var titleDiv = document.createElement('div');
+                var patientName = document.createElement('div');
+                patientName.style.fontSize = '18px';
+                patientName.style.fontWeight = '700';
+                patientName.style.color = '#333';
+                patientName.textContent = patient.name + ' - Room ' + patient.room;
+                
+                var timestamp = document.createElement('div');
+                timestamp.style.fontSize = '13px';
+                timestamp.style.color = '#666';
+                timestamp.textContent = new Date(reading.timestamp).toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit'});
+                
+                titleDiv.appendChild(patientName);
+                titleDiv.appendChild(timestamp);
+                
+                var deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn btn-small btn-danger';
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.onclick = (function(readingId) {
+                    return function() {
+                        deleteFridgeTemp(readingId);
+                    };
+                })(reading.id);
+                
+                headerDiv.appendChild(titleDiv);
+                headerDiv.appendChild(deleteBtn);
+                
+                readingCard.appendChild(headerDiv);
+                
+                var tempDiv = document.createElement('div');
+                tempDiv.style.background = 'white';
+                tempDiv.style.padding = '15px';
+                tempDiv.style.borderRadius = '6px';
+                tempDiv.style.marginBottom = '15px';
+                
+                var tempValue = document.createElement('div');
+                tempValue.style.fontSize = '32px';
+                tempValue.style.fontWeight = '700';
+                tempValue.style.marginBottom = '5px';
+                
+                // Color code based on temperature range (safe = 35-40°F for medication/biological)
+                if (reading.temperature >= 35 && reading.temperature <= 40) {
+                    tempValue.style.color = '#28a745';
+                } else if (reading.temperature >= 33 && reading.temperature < 35) {
+                    tempValue.style.color = '#ffc107';
+                } else if (reading.temperature > 40 && reading.temperature <= 42) {
+                    tempValue.style.color = '#ffc107';
+                } else {
+                    tempValue.style.color = '#f44336';
+                }
+                
+                tempValue.textContent = reading.temperature + '°F';
+                
+                var rangeDiv = document.createElement('div');
+                rangeDiv.style.fontSize = '13px';
+                rangeDiv.style.color = '#666';
+                if (reading.temperature >= 35 && reading.temperature <= 40) {
+                    rangeDiv.textContent = 'Within safe range (35-40°F)';
+                } else {
+                    rangeDiv.textContent = 'Outside safe range (should be 35-40°F)';
+                }
+                
+                tempDiv.appendChild(tempValue);
+                tempDiv.appendChild(rangeDiv);
+                readingCard.appendChild(tempDiv);
+                
+                if (reading.notes) {
+                    var notesDiv = document.createElement('div');
+                    notesDiv.style.background = 'white';
+                    notesDiv.style.padding = '15px';
+                    notesDiv.style.borderRadius = '6px';
+                    notesDiv.innerHTML = '<strong>Notes:</strong><br>' + reading.notes;
+                    readingCard.appendChild(notesDiv);
+                }
+                
+                container.appendChild(readingCard);
+            }
+        }
+
+        function deleteFridgeTemp(readingId) {
+            if (confirm('Delete this temperature reading?')) {
+                fridgeTemps = fridgeTemps.filter(function(t) { return t.id !== readingId; });
+                saveData();
+                renderFridge();
+                showSuccessMessage('Reading deleted');
             }
         }
 
