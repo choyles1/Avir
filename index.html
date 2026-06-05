@@ -1758,37 +1758,57 @@
                 fridgeSelect.innerHTML = '<option value="">Select a patient...</option>';
             }
             
-            for (var i = 0; i < patients.length; i++) {
+            // Sort patients by room number (numeric + letter)
+            var sortedPatients = patients.slice().sort(function(a, b) {
+                var roomA = a.room.toUpperCase();
+                var roomB = b.room.toUpperCase();
+                
+                // Extract numeric and letter parts
+                var numA = parseInt(roomA) || 0;
+                var numB = parseInt(roomB) || 0;
+                var lettersA = roomA.replace(/\d+/g, '');
+                var lettersB = roomB.replace(/\d+/g, '');
+                
+                // Sort by number first
+                if (numA !== numB) {
+                    return numA - numB;
+                }
+                
+                // If numbers are same, sort by letters
+                return lettersA.localeCompare(lettersB);
+            });
+            
+            for (var i = 0; i < sortedPatients.length; i++) {
                 var option = document.createElement('option');
-                option.value = patients[i].id;
-                option.textContent = patients[i].name;
+                option.value = sortedPatients[i].id;
+                option.textContent = sortedPatients[i].name;
                 select.appendChild(option);
                 
                 if (vitalsSelect) {
                     var vitalsOption = document.createElement('option');
-                    vitalsOption.value = patients[i].id;
-                    vitalsOption.textContent = patients[i].name;
+                    vitalsOption.value = sortedPatients[i].id;
+                    vitalsOption.textContent = sortedPatients[i].name;
                     vitalsSelect.appendChild(vitalsOption);
                 }
                 
                 if (painSelect) {
                     var painOption = document.createElement('option');
-                    painOption.value = patients[i].id;
-                    painOption.textContent = patients[i].name;
+                    painOption.value = sortedPatients[i].id;
+                    painOption.textContent = sortedPatients[i].name;
                     painSelect.appendChild(painOption);
                 }
                 
                 if (skinSelect) {
                     var skinOption = document.createElement('option');
-                    skinOption.value = patients[i].id;
-                    skinOption.textContent = patients[i].name;
+                    skinOption.value = sortedPatients[i].id;
+                    skinOption.textContent = sortedPatients[i].name;
                     skinSelect.appendChild(skinOption);
                 }
                 
                 if (fridgeSelect) {
                     var fridgeOption = document.createElement('option');
-                    fridgeOption.value = patients[i].id;
-                    fridgeOption.textContent = patients[i].name;
+                    fridgeOption.value = sortedPatients[i].id;
+                    fridgeOption.textContent = sortedPatients[i].name;
                     fridgeSelect.appendChild(fridgeOption);
                 }
             }
@@ -3442,8 +3462,28 @@
             var listDiv = document.createElement('div');
             listDiv.className = 'patient-list';
             
-            for (var i = 0; i < patients.length; i++) {
-                var patient = patients[i];
+            // Sort patients by room number (numeric + letter)
+            var sortedPatients = patients.slice().sort(function(a, b) {
+                var roomA = a.room.toUpperCase();
+                var roomB = b.room.toUpperCase();
+                
+                // Extract numeric and letter parts
+                var numA = parseInt(roomA) || 0;
+                var numB = parseInt(roomB) || 0;
+                var lettersA = roomA.replace(/\d+/g, '');
+                var lettersB = roomB.replace(/\d+/g, '');
+                
+                // Sort by number first
+                if (numA !== numB) {
+                    return numA - numB;
+                }
+                
+                // If numbers are same, sort by letters
+                return lettersA.localeCompare(lettersB);
+            });
+            
+            for (var i = 0; i < sortedPatients.length; i++) {
+                var patient = sortedPatients[i];
                 var itemDiv = document.createElement('div');
                 itemDiv.className = 'patient-list-item';
                 
