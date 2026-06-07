@@ -1868,14 +1868,34 @@
                 })
                 .map(function(v) { return v.patientId; });
             
+            // Sort patients by room number (numeric + letter)
+            var sortedPatients = patients.slice().sort(function(a, b) {
+                var roomA = a.room.toUpperCase();
+                var roomB = b.room.toUpperCase();
+                
+                // Extract numeric and letter parts
+                var numA = parseInt(roomA) || 0;
+                var numB = parseInt(roomB) || 0;
+                var lettersA = roomA.replace(/\d+/g, '');
+                var lettersB = roomB.replace(/\d+/g, '');
+                
+                // Sort by number first
+                if (numA !== numB) {
+                    return numA - numB;
+                }
+                
+                // If numbers are same, sort by letters
+                return lettersA.localeCompare(lettersB);
+            });
+            
             var vitalsSelect = document.getElementById('vitals-patient');
             vitalsSelect.innerHTML = '<option value="">Select a patient...</option>';
             
-            for (var i = 0; i < patients.length; i++) {
-                if (recordedPatientIds.indexOf(patients[i].id) === -1) {
+            for (var i = 0; i < sortedPatients.length; i++) {
+                if (recordedPatientIds.indexOf(sortedPatients[i].id) === -1) {
                     var option = document.createElement('option');
-                    option.value = patients[i].id;
-                    option.textContent = patients[i].name;
+                    option.value = sortedPatients[i].id;
+                    option.textContent = sortedPatients[i].name;
                     vitalsSelect.appendChild(option);
                 }
             }
@@ -2351,14 +2371,34 @@
                 })
                 .map(function(a) { return a.patientId; });
             
+            // Sort patients by room number (numeric + letter)
+            var sortedPatients = patients.slice().sort(function(a, b) {
+                var roomA = a.room.toUpperCase();
+                var roomB = b.room.toUpperCase();
+                
+                // Extract numeric and letter parts
+                var numA = parseInt(roomA) || 0;
+                var numB = parseInt(roomB) || 0;
+                var lettersA = roomA.replace(/\d+/g, '');
+                var lettersB = roomB.replace(/\d+/g, '');
+                
+                // Sort by number first
+                if (numA !== numB) {
+                    return numA - numB;
+                }
+                
+                // If numbers are same, sort by letters
+                return lettersA.localeCompare(lettersB);
+            });
+            
             var painSelect = document.getElementById('pain-patient');
             painSelect.innerHTML = '<option value="">Select a patient...</option>';
             
-            for (var i = 0; i < patients.length; i++) {
-                if (assessedPatientIds.indexOf(patients[i].id) === -1) {
+            for (var i = 0; i < sortedPatients.length; i++) {
+                if (assessedPatientIds.indexOf(sortedPatients[i].id) === -1) {
                     var option = document.createElement('option');
-                    option.value = patients[i].id;
-                    option.textContent = patients[i].name;
+                    option.value = sortedPatients[i].id;
+                    option.textContent = sortedPatients[i].name;
                     painSelect.appendChild(option);
                 }
             }
@@ -3325,14 +3365,34 @@
                 })
                 .map(function(t) { return t.patientId; });
             
+            // Sort patients by room number (numeric + letter)
+            var sortedPatients = patients.slice().sort(function(a, b) {
+                var roomA = a.room.toUpperCase();
+                var roomB = b.room.toUpperCase();
+                
+                // Extract numeric and letter parts
+                var numA = parseInt(roomA) || 0;
+                var numB = parseInt(roomB) || 0;
+                var lettersA = roomA.replace(/\d+/g, '');
+                var lettersB = roomB.replace(/\d+/g, '');
+                
+                // Sort by number first
+                if (numA !== numB) {
+                    return numA - numB;
+                }
+                
+                // If numbers are same, sort by letters
+                return lettersA.localeCompare(lettersB);
+            });
+            
             var fridgeSelect = document.getElementById('fridge-patient');
             fridgeSelect.innerHTML = '<option value="">Select a patient...</option>';
             
-            for (var i = 0; i < patients.length; i++) {
-                if (recordedPatientIds.indexOf(patients[i].id) === -1) {
+            for (var i = 0; i < sortedPatients.length; i++) {
+                if (recordedPatientIds.indexOf(sortedPatients[i].id) === -1) {
                     var option = document.createElement('option');
-                    option.value = patients[i].id;
-                    option.textContent = patients[i].name;
+                    option.value = sortedPatients[i].id;
+                    option.textContent = sortedPatients[i].name;
                     fridgeSelect.appendChild(option);
                 }
             }
