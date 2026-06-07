@@ -3026,9 +3026,29 @@
                 };
                 checklistContainer.appendChild(toggleBtn);
                 
+                // Sort patients by room number (numeric + letter)
+                var sortedPatients = patients.slice().sort(function(a, b) {
+                    var roomA = a.room.toUpperCase();
+                    var roomB = b.room.toUpperCase();
+                    
+                    // Extract numeric and letter parts
+                    var numA = parseInt(roomA) || 0;
+                    var numB = parseInt(roomB) || 0;
+                    var lettersA = roomA.replace(/\d+/g, '');
+                    var lettersB = roomB.replace(/\d+/g, '');
+                    
+                    // Sort by number first
+                    if (numA !== numB) {
+                        return numA - numB;
+                    }
+                    
+                    // If numbers are same, sort by letters
+                    return lettersA.localeCompare(lettersB);
+                });
+                
                 // Show all patients with checkboxes
-                for (var i = 0; i < patients.length; i++) {
-                    var patient = patients[i];
+                for (var i = 0; i < sortedPatients.length; i++) {
+                    var patient = sortedPatients[i];
                     var isAssessed = assessedPatientIds.indexOf(patient.id) !== -1;
                     var isDue = skinAssessmentsDue.indexOf(patient.id) !== -1;
                     
