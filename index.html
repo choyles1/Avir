@@ -1081,6 +1081,20 @@
         function init() {
             loadConfig();
             loadData();
+            
+            // Ensure all patients have careCategories initialized
+            for (var i = 0; i < patients.length; i++) {
+                if (!patients[i].careCategories) {
+                    patients[i].careCategories = {
+                        fsbs: { checked: false, note: '' },
+                        emar: { checked: false, note: '' },
+                        nemar: { checked: false, note: '' },
+                        tx: { checked: false, note: '' },
+                        skilled: { checked: false, note: '' }
+                    };
+                }
+            }
+            
             resetDailyCompletions();
             updatePatientSelect();
             updatePatientList();
