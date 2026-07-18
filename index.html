@@ -576,7 +576,10 @@
             <div id="schedule-view" class="view active">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
                     <h2 style="margin: 0;">Today's Schedule</h2>
-                    <button class="btn btn-secondary" onclick="resetAllCompletions()">Reset All Done Events</button>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" onclick="renderSchedule()">Update Schedule</button>
+                        <button class="btn btn-secondary" onclick="resetAllCompletions()">Reset All Done Events</button>
+                    </div>
                 </div>
                 
                 <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
@@ -1303,6 +1306,15 @@
                 if (filterBtns[i].getAttribute('data-filter') === filterType) {
                     filterBtns[i].classList.add('active');
                 }
+            }
+            
+            // Debug: Log what we're filtering
+            console.log('Filter clicked: ' + filterType);
+            console.log('Number of patients: ' + patients.length);
+            console.log('Number of events: ' + events.length);
+            
+            for (var p = 0; p < patients.length; p++) {
+                console.log('Patient ' + p + ': ' + patients[p].name + ', Room: ' + patients[p].room + ', CareCategories: ' + JSON.stringify(patients[p].careCategories));
             }
             
             renderSchedule();
@@ -3855,7 +3867,14 @@
                 
                 // Apply filter
                 if (currentFilter !== 'all') {
-                    if (!patient.careCategories || !patient.careCategories[currentFilter] || !patient.careCategories[currentFilter].checked) {
+                    var shouldShow = false;
+                    
+                    // Ensure careCategories exist
+                    if (patient.careCategories && patient.careCategories[currentFilter]) {
+                        shouldShow = patient.careCategories[currentFilter].checked === true;
+                    }
+                    
+                    if (!shouldShow) {
                         continue;
                     }
                 }
