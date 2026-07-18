@@ -1078,11 +1078,7 @@
         var currentFilter = 'all';
 
         // Initialize app
-        function init() {
-            loadConfig();
-            loadData();
-            
-            // Ensure all patients have careCategories initialized
+        function ensurePatientCareCategories() {
             for (var i = 0; i < patients.length; i++) {
                 if (!patients[i].careCategories) {
                     patients[i].careCategories = {
@@ -1092,8 +1088,23 @@
                         tx: { checked: false, note: '' },
                         skilled: { checked: false, note: '' }
                     };
+                } else {
+                    // Ensure all categories exist
+                    if (!patients[i].careCategories.fsbs) patients[i].careCategories.fsbs = { checked: false, note: '' };
+                    if (!patients[i].careCategories.emar) patients[i].careCategories.emar = { checked: false, note: '' };
+                    if (!patients[i].careCategories.nemar) patients[i].careCategories.nemar = { checked: false, note: '' };
+                    if (!patients[i].careCategories.tx) patients[i].careCategories.tx = { checked: false, note: '' };
+                    if (!patients[i].careCategories.skilled) patients[i].careCategories.skilled = { checked: false, note: '' };
                 }
             }
+        }
+        
+        function init() {
+            loadConfig();
+            loadData();
+            
+            // Ensure all patients have careCategories initialized
+            ensurePatientCareCategories();
             
             resetDailyCompletions();
             updatePatientSelect();
@@ -1158,6 +1169,9 @@
                         localStorage.setItem('skinAssessments', JSON.stringify(skinAssessments));
                         localStorage.setItem('skinAssessmentsDue', JSON.stringify(skinAssessmentsDue));
                         localStorage.setItem('fridgeTemps', JSON.stringify(fridgeTemps));
+                        
+                        // Ensure careCategories are initialized
+                        ensurePatientCareCategories();
                         
                         resetDailyCompletions();
                         updatePatientSelect();
